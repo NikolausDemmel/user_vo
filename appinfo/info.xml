@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<info xmlns="http://www.freedesktop.org/xmlclear/">
+    <id>user_vo</id>
+    <name>VereinOnline User Authentication</name>
+    <description>User authentication plugin for VereinOnline</description>
+    <licence>AGPL</licence>
+    <author>Nikolaus Demmel</author>
+    <version>1.0.0</version>
+	<namespace>UserVO</namespace>
+	<types>
+		<prelogin/>
+		<authentication/>
+	</types>
+	<category>tools</category>
+	<category>integration</category>
+	<dependencies>
+		<nextcloud min-version="22" max-version="25" />
+	</dependencies>
+</info>
