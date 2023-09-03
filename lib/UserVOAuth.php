@@ -1,4 +1,11 @@
 <?php
+/**
+ * @author Nikolaus Demmel <nikolaus@nikolaus-demmel.de>
+ * @copyright (c) 2023 Nikolaus Demmel <nikolaus@nikolaus-demmel.de>
+ * This file is licensed under the Affero General Public License version 3 or
+ * later.
+ * See the LICENSE file.
+ */
 
 declare(strict_types=1);
 

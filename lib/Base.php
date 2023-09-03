@@ -2,10 +2,12 @@
 /**
  * @author Jonas Sulzer <jonas@violoncello.ch>
  * @author Christian Weiske <cweiske@cweiske.de>
+ * @author Nikolaus Demmel <nikolaus@nikolaus-demmel.de>
  * @copyright (c) 2014 Christian Weiske <cweiske@cweiske.de>
+ *                2023 Nikolaus Demmel <nikolaus@nikolaus-demmel.de>
  * This file is licensed under the Affero General Public License version 3 or
  * later.
- * See the COPYING-README file.
+ * See the LICENSE file.
  */
 namespace OCA\UserVO;
 
@@ -16,8 +18,9 @@ namespace OCA\UserVO;
  * work, including sharing files with them.
  *
  * @category Apps
- * @package  UserExternal
+ * @package  UserVO
  * @author   Christian Weiske <cweiske@cweiske.de>
+ * @author   Nikolaus Demmel <nikolaus@nikolaus-demmel.de>
  * @license  http://www.gnu.org/licenses/agpl AGPL
  * @link     http://github.com/owncloud/apps
  */

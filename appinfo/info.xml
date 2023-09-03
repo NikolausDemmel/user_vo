@@ -1,19 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<info xmlns="http://www.freedesktop.org/xmlclear/">
+<info xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>user_vo</id>
     <name>VereinOnline User Authentication</name>
-    <description>User authentication plugin for VereinOnline</description>
+    <summary>User authentication plugin for VereinOnline</summary>
+	<description><![CDATA[Use VereinOnline User Authentication to give VereinOnline users access to your Nextcloud instance.
+
+The [documentation](https://github.com/NikolausDemmel/user_vo) describes how this plugin is configured.
+    ]]></description>
     <licence>AGPL</licence>
     <author>Nikolaus Demmel</author>
-    <version>1.0.0</version>
+    <version>0.1.0</version>
 	<namespace>UserVO</namespace>
 	<types>
 		<prelogin/>
 		<authentication/>
 	</types>
+	<documentation>
+		<admin>https://github.com/NikolausDemmel/user_vo</admin>
+	</documentation>
 	<category>tools</category>
 	<category>integration</category>
+	<website>https://github.com/NikolausDemmel/user_vo</website>
+	<bugs>https://github.com/NikolausDemmel/user_vo/issues</bugs>
+	<repository type="git">https://github.com/NikolausDemmel/user_vo.git</repository>
 	<dependencies>
-		<nextcloud min-version="22" max-version="25" />
+		<nextcloud min-version="22" />
 	</dependencies>
 </info>

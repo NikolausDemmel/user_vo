@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 /**
- * @copyright Copyright (c) 2023 Your name <your@email.com>
+ * @copyright Copyright (c) 2020 Joas Schilling <coding@schilljs.com>
+ *                          2023 Nikolaus Demmel <nikolaus@nikolaus-demmel.de>
  *
- * @author Your name <your@email.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Nikolaus Demmel <nikolaus@nikolaus-demmel.de>
  *
  * @license GNU AGPL version 3 or any later version
  *
