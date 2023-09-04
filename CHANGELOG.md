@@ -9,9 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2022-09-03
 
+### Fixed
+
+- Fixed invalid info.xml
+
+## [0.1.0] - 2022-09-03
+
 ### Added
 
 - Initial version of the UserVO plugin with username and password support.
 
-[unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/olivierlacan/keep-a-changelog/releases/tag/v0.1.1
 [0.1.0]: https://github.com/olivierlacan/keep-a-changelog/releases/tag/v0.1.0
