@@ -25,6 +25,6 @@ The [documentation](https://github.com/NikolausDemmel/user_vo) describes how thi
 	<bugs>https://github.com/NikolausDemmel/user_vo/issues</bugs>
 	<repository type="git">https://github.com/NikolausDemmel/user_vo.git</repository>
 	<dependencies>
-		<nextcloud min-version="22" max-version="27" />
+		<nextcloud min-version="24" max-version="31" />
 	</dependencies>
 </info>
