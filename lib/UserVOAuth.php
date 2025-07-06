@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace OCA\UserVO;
 
+use function OCP\Log\logger;
 use OCA\UserVO\Base;
 
 class UserVOAuth extends Base {
@@ -51,7 +52,7 @@ class UserVOAuth extends Base {
         $response = $this->makeRequest($url, $data, $token);
 
         if ($response === null) {
-            \OC::$server->getLogger()->error('API request failed', ['app' => 'user_vo']);
+            logger('user_vo')->error('API request failed');
             return false;
         } elseif (is_array($response) && isset($response[0]) && $response[0] !== '') {
             $this->storeUser($uid);
@@ -59,10 +60,10 @@ class UserVOAuth extends Base {
             return $uid;
         } elseif (is_array($response) && isset($response['error'])) {
             $errorMessage = $response['error'];
-            \OC::$server->getLogger()->error('User authentication error: ' . $errorMessage, ['app' => 'user_vo']);
+            logger('user_vo')->error('User authentication error: ' . $errorMessage);
             return false;
         } else {
-            \OC::$server->getLogger()->error('Invalid API response: ' . json_encode($response), ['app' => 'user_vo']);
+            logger('user_vo')->error('Invalid API response: ' . json_encode($response), ['app' => 'user_vo']);
             return false;
         }
     }
@@ -116,12 +117,12 @@ class UserVOAuth extends Base {
         // ]);
     
         if ($response === false) {
-            \OC::$server->getLogger()->error('API request failed: ' . $error, ['app' => 'user_vo']);
+            logger('user_vo')->error('API request failed: ' . $error);
             return null;
         }
     
         if ($httpCode !== 200) {
-            \OC::$server->getLogger()->error('API request returned non-200 status code: ' . $httpCode, ['app' => 'user_vo']);
+            logger('user_vo')->error('API request returned non-200 status code: ' . $httpCode);
             return null;
         }
     
