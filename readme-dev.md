@@ -2,12 +2,26 @@
 
 ## Creating a release
 
-1. Update the version in `info.xml`, in this example version `1.2.3`.
-2. Make sure `CHANGELOG.md` is up-to-date, contains the new version with correct date.
-3. Commit all changes.
-4. `gh auth login`
-5. `gh release create v1.2.3`
-6. `make appstore`
-7. `gh release upload v1.2.3 build/artifacts/appstore/user_vo.tar.gz`
-8. `openssl dgst -sha512 -sign ~/.nextcloud/certificates/user_vo.key build/artifacts/appstore/user_vo.tar.gz | openssl base64`
-9. Submit release on https://apps.nextcloud.com/developer/apps/releases/new, using the signature from the previous command and the download link from the uploaded release asset https://github.com/NikolausDemmel/user_vo/releases/download/v1.2.3/user_vo.tar.gz
+1. Update the version in `appinfo/info.xml` (e.g., to `0.1.2`).
+2. Update `CHANGELOG.md` with the new version and date.
+3. Commit all changes:
+   `git add . && git commit -m "Release v0.1.2"`
+4. Push changes to remote:
+   `git push origin main`
+5. Build the appstore package:
+  `make appstore`
+6. Test the built appstore archive locally:
+   - Temporarily comment out the apps-extra volume mount in `docker-compose.yml` for a test container.
+   - Recreate the container: `docker compose up -d --force-recreate stable31`
+   - Copy package to shared directory: `cp build/artifacts/appstore/user_vo.tar.gz data/shared/`
+   - Extract and install: `docker compose exec stable31 tar -xzf /shared/user_vo.tar.gz -C /var/www/html/apps/ && docker compose exec stable31 occ app:enable user_vo`
+   - Verify functionality, then clean up and restore volume mount.
+7. (If not already authenticated) `gh auth login`
+8. Create a new release and tag:
+   `gh release create v0.1.2`
+9. Upload the package to the release:
+   `gh release upload v0.1.2 build/artifacts/appstore/user_vo.tar.gz`
+10. Create the signature:
+   `openssl dgst -sha512 -sign ~/.nextcloud/certificates/user_vo.key build/artifacts/appstore/user_vo.tar.gz | openssl base64`
+11. Submit the release on https://apps.nextcloud.com/developer/apps/releases/new, using the signature and the GitHub release asset link:
+    `https://github.com/NikolausDemmel/user_vo/releases/download/v0.1.2/user_vo.tar.gz`
