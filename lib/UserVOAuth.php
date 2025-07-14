@@ -29,12 +29,12 @@ class UserVOAuth extends Base {
     /**
      * Check if the provided credentials are valid and authenticate the user.
      *
-     * @param string $uid      The username
+     * @param string $uid      The canonical username
      * @param string $password The password
      *
      * @return bool|string The authenticated user's ID if successful, otherwise false
      */
-    public function checkPassword($uid, $password) {
+    protected function checkCanonicalPassword($uid, $password) {
         // Perform the necessary authentication logic using Vereinonline API
         // Make API request to verify the credentials and retrieve user information
         // Return the authenticated user's ID or false
@@ -90,10 +90,7 @@ class UserVOAuth extends Base {
         curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($curl, CURLOPT_HEADER, false);
     
-        // Enable verbose output for debugging
-        curl_setopt($curl, CURLOPT_VERBOSE, true);
-        $verboseOutput = fopen('php://temp', 'w+');
-        curl_setopt($curl, CURLOPT_STDERR, $verboseOutput);
+
     
         $response = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -101,20 +98,7 @@ class UserVOAuth extends Base {
     
         curl_close($curl);
 
-        // rewind($verboseOutput);
-        // $verboseInfo = stream_get_contents($verboseOutput);
-        // fclose($verboseOutput);
-    
-        // \OC::$server->getLogger()->warning('API request:', [
-        //     'url' => $url,
-        //     'data' => $data,
-        //     'token' => $token,
-        //     'response' => $response,
-        //     'httpCode' => $httpCode,
-        //     'error' => $error,
-        //     'verboseInfo' => $verboseInfo,
-        //     'app' => 'user_vo',
-        // ]);
+
     
         if ($response === false) {
             logger('user_vo')->error('API request failed: ' . $error);

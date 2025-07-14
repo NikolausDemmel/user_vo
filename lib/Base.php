@@ -44,52 +44,140 @@ abstract class Base extends \OC\User\Backend {
 	 * @return bool
 	 */
 	public function deleteUser($uid) {
-		$query = \OC::$server->getDatabaseConnection()->getQueryBuilder();
+		$connection = \OC::$server->getDatabaseConnection();
+		$query = $connection->getQueryBuilder();
+		
+		// Delete user with exact uid or uid + !duplicate suffix
 		$query->delete('user_vo')
-			->where($query->expr()->eq('uid', $query->createNamedParameter($uid)))
+			->where($query->expr()->orX(
+				$query->expr()->eq('uid', $query->createNamedParameter($uid)),
+				$query->expr()->eq('uid', $query->createNamedParameter($uid . '!duplicate'))
+			))
 			->andWhere($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
 		$query->execute();
+		
 		return true;
 	}
 
 	/**
-	 * Get display name of the user
-	 *
-	 * @param string $uid user ID of the user
-	 *
-	 * @return string display name
+	 * Helper to strip the !duplicate marker from a uid
 	 */
-	public function getDisplayName($uid) {
-		$query = \OC::$server->getDatabaseConnection()->getQueryBuilder();
-		$query->select('displayname')
-			->from('user_vo')
-			->where($query->expr()->eq('uid', $query->createNamedParameter($uid)))
-			->andWhere($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
-		$result = $query->execute();
-		$user = $result->fetch();
-		$result->closeCursor();
-
-		$displayName = trim($user['displayname'] ?? '', ' ');
-		if (!empty($displayName)) {
-			return $displayName;
-		} else {
-			return $uid;
+	private function stripDuplicateMarker($uid) {
+		if (str_ends_with($uid, '!duplicate')) {
+			return substr($uid, 0, -10);
 		}
+		return $uid;
 	}
 
 	/**
-	 * Get a list of all display names and user ids.
-	 *
-	 * @return array with all displayNames (value) and the corresponding uids (key)
+	 * Helper to format display name with (D) prefix for duplicates
+	 */
+	private function formatDisplayName($storedUid, $storedDisplayName) {
+		$displayName = !empty($storedDisplayName) ? $storedDisplayName : $this->stripDuplicateMarker($storedUid);
+		
+		// Add (D) prefix if this is a duplicate
+		if (str_ends_with($storedUid, '!duplicate')) {
+			return '(D) ' . $displayName;
+		}
+		
+		return $displayName;
+	}
+
+	/**
+	 * Handle login: First check if exact capitalization exists (exposed or canonical),
+	 * otherwise map to canonical user. For new users, create as lowercase.
+	 */
+	public function checkPassword($uid, $password) {
+		// Step 1: Check if this exact capitalization exists in user_vo
+		if ($this->userExists($uid)) {
+			// User with this exact capitalization is exposed/canonical - login directly
+			return $this->checkCanonicalPassword($uid, $password);
+		}
+		
+		// Step 2: No exact match - find canonical user for this normalized username
+		$normalizedUid = strtolower($uid);
+		$canonicalUid = $this->findCanonicalUserForNormalizedUid($normalizedUid);
+		
+		if ($canonicalUid) {
+			// Canonical user exists - login as canonical
+			return $this->checkCanonicalPassword($canonicalUid, $password);
+		}
+		
+		// Step 3: No user exists - for new users, create as lowercase
+		return $this->checkCanonicalPassword($normalizedUid, $password);
+	}
+	
+	/**
+	 * Find the canonical user (first user without !duplicate marker) for a normalized uid
+	 */
+	private function findCanonicalUserForNormalizedUid($normalizedUid) {
+		$connection = \OC::$server->getDatabaseConnection();
+		$query = $connection->getQueryBuilder();
+		$query->select('uid')
+			->from('user_vo')
+			->where($query->expr()->eq('backend', $query->createNamedParameter($this->backend)))
+			->andWhere($query->expr()->notLike('uid', $query->createNamedParameter('%!duplicate')))
+			->andWhere($query->expr()->eq(
+				$query->func()->lower('uid'), 
+				$query->createNamedParameter($normalizedUid)
+			))
+			->setMaxResults(1);
+		$result = $query->execute();
+		$row = $result->fetch();
+		$result->closeCursor();
+		return $row ? $row['uid'] : null;
+	}
+
+
+
+	/**
+	 * Canonical password check (to be implemented in subclass).
+	 */
+	abstract protected function checkCanonicalPassword($uid, $password);
+
+	/**
+	 * Get display name of the user, strip !duplicate marker from returned uid.
+	 */
+	public function getDisplayName($uid) {
+		$connection = \OC::$server->getDatabaseConnection();
+		$query = $connection->getQueryBuilder();
+		
+		// Find user with exact uid or uid + !duplicate suffix
+		$query->select('uid', 'displayname')
+			->from('user_vo')
+			->where($query->expr()->orX(
+				$query->expr()->eq('uid', $query->createNamedParameter($uid)),
+				$query->expr()->eq('uid', $query->createNamedParameter($uid . '!duplicate'))
+			))
+			->andWhere($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
+		$result = $query->execute();
+		$row = $result->fetch();
+		$result->closeCursor();
+		
+		if (!$row) {
+			return $uid; // Fallback to the original uid
+		}
+		
+		return $this->formatDisplayName($row['uid'], $row['displayname']);
+	}
+
+	/**
+	 * Get a list of all display names and user ids (strip !duplicate marker from returned uids).
 	 */
 	public function getDisplayNames($search = '', $limit = null, $offset = null) {
 		$connection = \OC::$server->getDatabaseConnection();
 		$query = $connection->getQueryBuilder();
 		$query->select('uid', 'displayname')
 			->from('user_vo')
-			->where($query->expr()->iLike('displayname', $query->createNamedParameter('%' . $connection->escapeLikeParameter($search) . '%')))
-			->orWhere($query->expr()->iLike('uid', $query->createNamedParameter('%' . $connection->escapeLikeParameter($search) . '%')))
-			->andWhere($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
+			->where($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
+		if ($search) {
+			$query->andWhere(
+				$query->expr()->orX(
+					$query->expr()->iLike('displayname', $query->createNamedParameter('%' . $connection->escapeLikeParameter($search) . '%')),
+					$query->expr()->iLike('uid', $query->createNamedParameter('%' . $connection->escapeLikeParameter($search) . '%'))
+				)
+			);
+		}
 		if ($limit) {
 			$query->setMaxResults($limit);
 		}
@@ -100,7 +188,7 @@ abstract class Base extends \OC\User\Backend {
 
 		$displayNames = [];
 		while ($row = $result->fetch()) {
-			$displayNames[$row['uid']] = $row['displayname'];
+			$displayNames[$this->stripDuplicateMarker($row['uid'])] = $this->formatDisplayName($row['uid'], $row['displayname']);
 		}
 		$result->closeCursor();
 
@@ -108,17 +196,17 @@ abstract class Base extends \OC\User\Backend {
 	}
 
 	/**
-	 * Get a list of all users
-	 *
-	 * @return array with all uids
+	 * Get a list of all users (strip !duplicate marker from returned uids)
 	 */
 	public function getUsers($search = '', $limit = null, $offset = null) {
 		$connection = \OC::$server->getDatabaseConnection();
 		$query = $connection->getQueryBuilder();
 		$query->select('uid')
 			->from('user_vo')
-			->where($query->expr()->iLike('uid', $query->createNamedParameter($connection->escapeLikeParameter($search) . '%')))
-			->andWhere($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
+			->where($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
+		if ($search) {
+			$query->andWhere($query->expr()->iLike('uid', $query->createNamedParameter($connection->escapeLikeParameter($search) . '%')));
+		}
 		if ($limit) {
 			$query->setMaxResults($limit);
 		}
@@ -129,7 +217,7 @@ abstract class Base extends \OC\User\Backend {
 
 		$users = [];
 		while ($row = $result->fetch()) {
-			$users[] = $row['uid'];
+			$users[] = $this->stripDuplicateMarker($row['uid']);
 		}
 		$result->closeCursor();
 
@@ -146,38 +234,53 @@ abstract class Base extends \OC\User\Backend {
 	}
 
 	/**
-	 * Change the display name of a user
-	 *
-	 * @param string $uid         The username
-	 * @param string $displayName The new display name
-	 *
-	 * @return true/false
+	 * Change the display name of a user (strip !duplicate marker from input and table entries).
 	 */
 	public function setDisplayName($uid, $displayName) {
-		if (!$this->userExists($uid)) {
-			return false;
+		// Strip "(D) " prefix if present - Nextcloud might pass this back to us
+		// since we return display names with this prefix for duplicates
+		if (str_starts_with($displayName, '(D) ')) {
+			$displayName = substr($displayName, 4);
 		}
-
-		$query = \OC::$server->getDatabaseConnection()->getQueryBuilder();
+		
+		$connection = \OC::$server->getDatabaseConnection();
+		$query = $connection->getQueryBuilder();
 		$query->update('user_vo')
 			->set('displayname', $query->createNamedParameter($displayName))
-			->where($query->expr()->eq('uid', $query->createNamedParameter($uid)))
+			->where($query->expr()->orX(
+				$query->expr()->eq('uid', $query->createNamedParameter($uid)),
+				$query->expr()->eq('uid', $query->createNamedParameter($uid . '!duplicate'))
+			))
 			->andWhere($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
 		$query->execute();
-
 		return true;
 	}
 
 	/**
 	 * Create user record in database
 	 *
-	 * @param string $uid The username
+	 * @param string $uid The username - should be lowercase for new users, existing capitalization for existing users
 	 * @param array $groups Groups to add the user to on creation
 	 *
 	 * @return void
 	 */
 	protected function storeUser($uid, $groups = []) {
+		// Check for !duplicate marker - this should never happen for any user
+		if (str_ends_with($uid, '!duplicate')) {
+			error_log("ERROR: storeUser() called with !duplicate marker '$uid'. This indicates a serious bug in the login flow. Stripping marker.");
+			$uid = $this->stripDuplicateMarker($uid);
+		}
+		
 		if (!$this->userExists($uid)) {
+			// This is a new user - verify it's lowercase (as per our design)
+			if ($uid !== strtolower($uid)) {
+				error_log("WARNING: storeUser() creating new user with non-lowercase uid '$uid'. This suggests a bug in the login flow. Forcing lowercase.");
+				$uid = strtolower($uid);
+			}
+			
+			// uid is now clean and lowercase for new users
+			$cleanUid = $uid;
+			
 			$query = \OC::$server->getDatabaseConnection()->getQueryBuilder();
 			$query->insert('user_vo')
 				->values([
@@ -187,7 +290,7 @@ abstract class Base extends \OC\User\Backend {
 			$query->execute();
 
 			if ($groups) {
-				$createduser = \OC::$server->getUserManager()->get($uid);
+				$createduser = \OC::$server->getUserManager()->get($cleanUid);
 				foreach ($groups as $group) {
 					\OC::$server->getGroupManager()->createGroup($group)->addUser($createduser);
 				}
@@ -196,24 +299,24 @@ abstract class Base extends \OC\User\Backend {
 	}
 
 	/**
-	 * Check if a user exists
-	 *
-	 * @param string $uid the username
-	 *
-	 * @return boolean
+	 * Check if a user exists (exact case-sensitive matching).
+	 * Input should never contain !duplicate markers.
 	 */
 	public function userExists($uid) {
+		// Input should never have markers - it comes from Nextcloud core
 		$connection = \OC::$server->getDatabaseConnection();
 		$query = $connection->getQueryBuilder();
-		$query->select($query->func()->count('*', 'num_users'))
+		$query->select('uid')
 			->from('user_vo')
-			->where($query->expr()->iLike('uid', $query->createNamedParameter($connection->escapeLikeParameter($uid))))
+			->where($query->expr()->orX(
+				$query->expr()->eq('uid', $query->createNamedParameter($uid)),
+				$query->expr()->eq('uid', $query->createNamedParameter($uid . '!duplicate'))
+			))
 			->andWhere($query->expr()->eq('backend', $query->createNamedParameter($this->backend)));
 		$result = $query->execute();
-		$users = $result->fetchColumn();
+		$row = $result->fetch();
 		$result->closeCursor();
-
-		return $users > 0;
+		return $row !== false;
 	}
 
 	/**
@@ -233,4 +336,6 @@ abstract class Base extends \OC\User\Backend {
 
 		return $users > 0;
 	}
+
+
 }

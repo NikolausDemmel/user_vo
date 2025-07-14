@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Case sensitivity bug causing duplicate user accounts for different username
+  capitalizations (#2). New users are now created with lowercase usernames while
+  maintaining backwards compatibility for existing users.
+
+### Added
+- Admin interface for managing duplicate user accounts caused by case sensitivity bug
+
 ## [0.1.2] - 2024-06-07
 
 ### Changed
