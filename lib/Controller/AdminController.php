@@ -43,7 +43,7 @@ class AdminController extends Controller {
     }
 
     /**
-     * Scan for duplicate user accounts and return them grouped by normalized username
+     * Scan for duplicates and return comprehensive user analysis
      */
     public function scanDuplicates() {
         try {
@@ -94,51 +94,80 @@ class AdminController extends Controller {
                 $userGroups[$normalizedUid][] = $uid;
             }
 
-            // Find groups with duplicates (more than one variant)
-            $groups = [];
+            // Prepare response arrays
+            $duplicateGroups = [];
+            $allPluginUsers = [];
+
+            // Process each user group
             foreach ($userGroups as $normalizedUid => $variants) {
-                if (count($variants) > 1) {
-                    // Find canonical user (exists in user_vo without !duplicate marker)
-                    $canonical = $this->findCanonicalUser($normalizedUid);
+                // Find canonical user (exists in user_vo without !duplicate marker)
+                $canonical = $this->findCanonicalUser($normalizedUid);
 
-                    $variantData = [];
-                    foreach ($variants as $uid) {
-                        $isCanonical = ($uid === $canonical);
-                        $markedUid = $uid . '!duplicate';
-                        $isExposed = array_key_exists($uid, $exposedUsers) || array_key_exists($markedUid, $exposedUsers);
-                        $isDuplicate = array_key_exists($markedUid, $exposedUsers);
-                        
-                        // Get display name from user_vo if exposed, otherwise use uid
-                        $displayname = '';
-                        if (array_key_exists($uid, $exposedUsers)) {
-                            $displayname = !empty($exposedUsers[$uid]) ? $exposedUsers[$uid] : $uid;
-                        } elseif (array_key_exists($markedUid, $exposedUsers)) {
-                            $displayname = !empty($exposedUsers[$markedUid]) ? $exposedUsers[$markedUid] : $uid;
-                        } else {
-                            $displayname = $uid;
-                        }
-                        
-                        $variantData[] = [
-                            'uid' => $uid,  // Clean uid for frontend
-                            'display_uid' => $uid,
-                            'is_exposed' => $isExposed,
-                            'is_canonical' => $isCanonical,
-                            'is_marked_duplicate' => $isDuplicate,
-                            'file_count' => $this->countUserFiles($uid),
-                            'displayname' => $displayname,
-                            'groups' => $this->getUserGroups($uid),
-                            'creation_date' => $this->getUserDirectoryCreationDate($uid),
-                        ];
+                $variantData = [];
+                foreach ($variants as $uid) {
+                    $isCanonical = ($uid === $canonical);
+                    $markedUid = $uid . '!duplicate';
+                    $isExposed = array_key_exists($uid, $exposedUsers) || array_key_exists($markedUid, $exposedUsers);
+                    $isDuplicate = array_key_exists($markedUid, $exposedUsers);
+                    
+                    // Get display name from user_vo if exposed, otherwise use uid
+                    $displayname = '';
+                    if (array_key_exists($uid, $exposedUsers)) {
+                        $displayname = !empty($exposedUsers[$uid]) ? $exposedUsers[$uid] : $uid;
+                    } elseif (array_key_exists($markedUid, $exposedUsers)) {
+                        $displayname = !empty($exposedUsers[$markedUid]) ? $exposedUsers[$markedUid] : $uid;
+                    } else {
+                        $displayname = $uid;
                     }
-
-                    $groups[] = [
-                        'normalized_uid' => $normalizedUid,
-                        'variants' => $variantData,
+                    
+                    $variantData[] = [
+                        'uid' => $uid,  // Clean uid for frontend
+                        'display_uid' => $uid,
+                        'is_exposed' => $isExposed,
+                        'is_canonical' => $isCanonical,
+                        'is_marked_duplicate' => $isDuplicate,
+                        'file_count' => $this->countUserFiles($uid),
+                        'displayname' => $displayname,
+                        'groups' => $this->getUserGroups($uid),
+                        'creation_date' => $this->getUserDirectoryCreationDate($uid),
+                        'is_normalized' => ($uid === $normalizedUid),
                     ];
+                }
+
+                $groupInfo = [
+                    'normalized_uid' => $normalizedUid,
+                    'variants' => $variantData,
+                ];
+
+                // Add to appropriate categories
+                if (count($variants) > 1) {
+                    // Multiple variants = duplicate group
+                    $duplicateGroups[] = $groupInfo;
+                }
+
+                // Add all variants to the comprehensive list
+                foreach ($variantData as $variant) {
+                    $allPluginUsers[] = $variant;
                 }
             }
 
-            return new JSONResponse(['success' => true, 'duplicateSets' => $groups]);
+            // Sort arrays for consistent display
+            usort($duplicateGroups, function($a, $b) {
+                return strcmp($a['normalized_uid'], $b['normalized_uid']);
+            });
+            usort($allPluginUsers, function($a, $b) {
+                return strcmp($a['uid'], $b['uid']);
+            });
+
+            return new JSONResponse([
+                'success' => true, 
+                'duplicateSets' => $duplicateGroups,
+                'allPluginUsers' => $allPluginUsers,
+                'summary' => [
+                    'duplicateSets' => count($duplicateGroups),
+                    'totalManagedUsers' => count($allPluginUsers)
+                ]
+            ]);
         } catch (\Exception $e) {
             $this->logger->error('Error in scanDuplicates: ' . $e->getMessage(), ['app' => 'user_vo']);
             return new JSONResponse(['success' => false, 'error' => $e->getMessage()]);
