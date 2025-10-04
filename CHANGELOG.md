@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-10-04
+
+### Fixed
+- Dark mode styling for admin interface - improved contrast and readability
+- Status boxes now properly adapt to both light and dark themes
+
 ## [0.2.0] - 2025-10-04
 
 ### Fixed
