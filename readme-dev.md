@@ -3,7 +3,7 @@
 ## Creating a release
 
 1. Update the version in `appinfo/info.xml` (e.g., to `0.1.2`).
-2. Update `CHANGELOG.md` with the new version and date.
+2. Update `CHANGELOG.md` with the new version and date. Add the diff link at the bottom of the file with the existing links.
 3. Commit all changes:
    `git add . && git commit -m "Release v0.1.2"`
 4. Push changes to remote:

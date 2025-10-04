@@ -10,7 +10,7 @@ The [documentation](https://github.com/NikolausDemmel/user_vo) describes how thi
     ]]></description>
     <licence>AGPL</licence>
     <author>Nikolaus Demmel</author>
-    <version>0.1.2</version>
+    <version>0.2.0</version>
 	<namespace>UserVO</namespace>
 	<types>
 		<prelogin/>
