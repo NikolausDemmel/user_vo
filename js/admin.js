@@ -86,10 +86,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if button has data attributes (config.php mode) or use form (admin interface mode)
         const mode = button.getAttribute('data-mode');
         if (mode === 'config-php') {
-            // Get configuration from data attributes (config.php values)
+            // Send empty values - server will load everything from config.php
             data = {
-                api_url: button.getAttribute('data-api-url'),
-                api_username: button.getAttribute('data-api-username'),
+                api_url: '',
+                api_username: '',
                 api_password: '' // Password will be retrieved server-side from config
             };
         } else if (configForm) {

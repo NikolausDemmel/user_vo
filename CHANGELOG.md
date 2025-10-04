@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Test Configuration button now works correctly when config.php is configured but database is not
+
 ## [0.2.1] - 2025-10-04
 
 ### Fixed
