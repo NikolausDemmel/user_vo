@@ -374,8 +374,81 @@
     word-wrap: break-word;
 }
 
+/* Inline status boxes from template */
+.status-box {
+    padding: 20px;
+    border-radius: 3px;
+    margin-bottom: 20px;
+}
+
+.status-box-green {
+    background-color: #d4edda;
+    border: 1px solid #28a745;
+    border-left: 4px solid #28a745;
+}
+
+.status-box-red {
+    background-color: #f8d7da;
+    border: 1px solid #d73a49;
+    border-left: 4px solid #d73a49;
+}
+
+.status-box-yellow {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-left: 4px solid #ffc107;
+}
+
+.status-box .config-value-display {
+    padding: 10px;
+    background-color: rgba(255,255,255,0.7);
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+.status-box .not-set {
+    color: #d73a49;
+}
+
+.status-box .incomplete-warning {
+    color: #d73a49;
+    margin: 10px 0 0 0;
+    font-size: 0.9em;
+}
+
 /* Make the whole section more readable in dark mode */
 @media (prefers-color-scheme: dark) {
+    .status-box-green {
+        background-color: #1e3a2f;
+        border-color: #34d399;
+        color: #f3f3f3;
+    }
+
+    .status-box-red {
+        background-color: #3a1e1e;
+        border-color: #f87171;
+        color: #f3f3f3;
+    }
+
+    .status-box-yellow {
+        background-color: #3a331e;
+        border-color: #fbbf24;
+        color: #f3f3f3;
+    }
+
+    .status-box .config-value-display {
+        background-color: rgba(0, 0, 0, 0.3);
+        color: #f3f3f3;
+    }
+
+    .status-box .not-set {
+        color: #f87171;
+    }
+
+    .status-box .incomplete-warning {
+        color: #f87171;
+    }
+
     .config-status-indicator.config-config\.php {
         background-color: #1e3a5f;
         border-color: #4da3ff;
@@ -480,4 +553,151 @@
     .no-groups, .no-date {
         color: #777;
     }
+}
+
+/* Nextcloud dark mode using data attribute */
+[data-theme-dark] .status-box-green {
+    background-color: #1e3a2f;
+    border-color: #34d399;
+    color: #f3f3f3;
+}
+
+[data-theme-dark] .status-box-red {
+    background-color: #3a1e1e;
+    border-color: #f87171;
+    color: #f3f3f3;
+}
+
+[data-theme-dark] .status-box-yellow {
+    background-color: #3a331e;
+    border-color: #fbbf24;
+    color: #f3f3f3;
+}
+
+[data-theme-dark] .status-box .config-value-display {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: #f3f3f3;
+}
+
+[data-theme-dark] .status-box .not-set {
+    color: #f87171;
+}
+
+[data-theme-dark] .status-box .incomplete-warning {
+    color: #f87171;
+}
+
+[data-theme-dark] .config-status-indicator.config-config\.php {
+    background-color: #1e3a5f;
+    border-color: #4da3ff;
+    color: #4da3ff;
+}
+
+[data-theme-dark] .config-status-indicator.config-admin_interface {
+    background-color: #1e3a2f;
+    border-color: #34d399;
+    color: #34d399;
+}
+
+[data-theme-dark] .config-status-indicator.config-incomplete {
+    background-color: #3a1e1e;
+    border-color: #f87171;
+    color: #f87171;
+}
+
+[data-theme-dark] .config-details {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: #ccc;
+}
+
+[data-theme-dark] .config-form {
+    background-color: #2d323b;
+    border-color: #444b58;
+}
+
+[data-theme-dark] .form-group label {
+    color: #f3f3f3;
+}
+
+[data-theme-dark] .form-group input[type="url"],
+[data-theme-dark] .form-group input[type="text"],
+[data-theme-dark] .form-group input[type="password"] {
+    background-color: #23272f;
+    color: #f3f3f3;
+    border-color: #444b58;
+}
+
+[data-theme-dark] .form-group input:focus {
+    border-color: #4da3ff;
+    box-shadow: 0 0 0 2px rgba(77, 163, 255, 0.2);
+}
+
+[data-theme-dark] .form-group em {
+    color: #ccc;
+}
+
+[data-theme-dark] .config-message.success {
+    background-color: #1e3a2f;
+    color: #34d399;
+    border-color: #34d399;
+}
+
+[data-theme-dark] .config-message.error {
+    background-color: #3a1e1e;
+    color: #f87171;
+    border-color: #f87171;
+}
+
+[data-theme-dark] .user-summary {
+    background-color: #2d323b;
+    color: #f3f3f3;
+    border-color: #444b58;
+}
+[data-theme-dark] .user-summary h4 {
+    color: #fff;
+}
+[data-theme-dark] .user-summary p {
+    color: #ccc;
+}
+
+[data-theme-dark] .duplicate-results,
+[data-theme-dark] .duplicate-set,
+[data-theme-dark] .all-users-results {
+    background-color: #23272f;
+    color: #f3f3f3;
+    border-color: #444b58;
+}
+[data-theme-dark] .duplicate-set h5,
+[data-theme-dark] .duplicate-results h4,
+[data-theme-dark] .all-users-results h4 {
+    color: #fff;
+    border-bottom: 1px solid #333;
+}
+[data-theme-dark] .duplicate-results p,
+[data-theme-dark] .all-users-results p {
+    color: #ccc;
+}
+[data-theme-dark] .duplicate-set p,
+[data-theme-dark] .duplicate-set li {
+    color: #f3f3f3;
+}
+[data-theme-dark] .expose-checkbox {
+    accent-color: #4da3ff;
+}
+[data-theme-dark] .duplicate-variants th,
+[data-theme-dark] .all-users-table th {
+    background-color: #2d323b;
+    border-bottom: 1px solid #444b58;
+}
+[data-theme-dark] .duplicate-variants td,
+[data-theme-dark] .all-users-table td {
+    border-bottom: 1px solid #444b58;
+}
+[data-theme-dark] .groups-list,
+[data-theme-dark] .creation-date {
+    color: #ccc;
+}
+[data-theme-dark] .no-groups,
+[data-theme-dark] .no-date {
+    color: #777;
 }

@@ -32,10 +32,7 @@ style('user_vo', 'admin');
 
         <?php if ($hasConfigPhp): ?>
             <!-- Config.php is present - show current active config -->
-            <div style="background-color: <?php echo $isPartialConfig ? '#f8d7da' : '#d4edda'; ?>;
-                        border: 1px solid <?php echo $isPartialConfig ? '#d73a49' : '#28a745'; ?>;
-                        border-left: 4px solid <?php echo $isPartialConfig ? '#d73a49' : '#28a745'; ?>;
-                        padding: 20px; border-radius: 3px; margin-bottom: 20px;">
+            <div class="status-box <?php echo $isPartialConfig ? 'status-box-red' : 'status-box-green'; ?>">
                 <div style="margin-bottom: 15px;">
                     <span class="icon icon-info"></span>
                     <strong>
@@ -57,33 +54,33 @@ style('user_vo', 'admin');
                 <div style="max-width: 600px;">
                     <div style="margin-bottom: 12px;">
                         <div style="font-weight: bold; margin-bottom: 5px;"><?php p($l->t('API URL')); ?></div>
-                        <div style="padding: 10px; background-color: rgba(255,255,255,0.7); border-radius: 3px; font-family: monospace;">
+                        <div class="config-value-display">
                             <?php if ($sources['api_url'] === 'config.php'): ?>
                                 <?php p($_['config_status']['current_config']['api_url']); ?>
                             <?php else: ?>
-                                <span style="color: #d73a49;"><?php p($l->t('(not set in config.php)')); ?></span>
+                                <span class="not-set"><?php p($l->t('(not set in config.php)')); ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 12px;">
                         <div style="font-weight: bold; margin-bottom: 5px;"><?php p($l->t('API Username')); ?></div>
-                        <div style="padding: 10px; background-color: rgba(255,255,255,0.7); border-radius: 3px; font-family: monospace;">
+                        <div class="config-value-display">
                             <?php if ($sources['api_username'] === 'config.php'): ?>
                                 <?php p($_['config_status']['current_config']['api_username']); ?>
                             <?php else: ?>
-                                <span style="color: #d73a49;"><?php p($l->t('(not set in config.php)')); ?></span>
+                                <span class="not-set"><?php p($l->t('(not set in config.php)')); ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 12px;">
                         <div style="font-weight: bold; margin-bottom: 5px;"><?php p($l->t('API Password')); ?></div>
-                        <div style="padding: 10px; background-color: rgba(255,255,255,0.7); border-radius: 3px; font-family: monospace;">
+                        <div class="config-value-display">
                             <?php if ($sources['api_password'] === 'config.php'): ?>
                                 <?php p($_['config_status']['current_config']['api_password']); ?>
                             <?php else: ?>
-                                <span style="color: #d73a49;"><?php p($l->t('(not set in config.php)')); ?></span>
+                                <span class="not-set"><?php p($l->t('(not set in config.php)')); ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -98,7 +95,7 @@ style('user_vo', 'admin');
                         <?php p($l->t('Test Configuration')); ?>
                     </button>
                     <?php if (!$isConfigComplete): ?>
-                        <p style="color: #d73a49; margin: 10px 0 0 0; font-size: 0.9em;">
+                        <p class="incomplete-warning">
                             <?php p($l->t('Configuration is incomplete. All three values (URL, Username, Password) are required to test the configuration.')); ?>
                         </p>
                     <?php endif; ?>
@@ -111,7 +108,7 @@ style('user_vo', 'admin');
         <!-- Show configuration form always -->
         <?php if ($hasConfigPhp): ?>
             <!-- When config.php is active, show the form in a yellow warning box -->
-            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-left: 4px solid #ffc107; padding: 20px; border-radius: 3px; margin-bottom: 20px;">
+            <div class="status-box status-box-yellow">
                 <div style="margin-bottom: 15px;">
                     <span class="icon icon-info"></span>
                     <strong><?php p($l->t('Database Configuration (from admin interface - currently unused)')); ?></strong>
@@ -120,14 +117,14 @@ style('user_vo', 'admin');
         <?php else: ?>
             <!-- No config.php - show form in green box if configured, red if not -->
             <?php if ($_['config_status']['is_configured']): ?>
-                <div style="background-color: #d4edda; border: 1px solid #28a745; border-left: 4px solid #28a745; padding: 20px; border-radius: 3px; margin-bottom: 20px;">
+                <div class="status-box status-box-green">
                     <div style="margin-bottom: 15px;">
                         <span class="icon icon-checkmark"></span>
                         <strong><?php p($l->t('Active Configuration (from admin interface)')); ?></strong>
                         <p style="margin: 5px 0;"><?php p($l->t('This plugin is configured via the admin interface. You can modify the configuration below.')); ?></p>
                     </div>
             <?php else: ?>
-                <div style="background-color: #f8d7da; border: 1px solid #d73a49; border-left: 4px solid #d73a49; padding: 20px; border-radius: 3px; margin-bottom: 20px;">
+                <div class="status-box status-box-red">
                     <div style="margin-bottom: 15px;">
                         <span class="icon icon-error"></span>
                         <strong><?php p($l->t('Configuration Required')); ?></strong>
