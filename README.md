@@ -21,17 +21,23 @@ the database. ⚠⚠
 > *Note:* The implementation and documentation is derived from the [External
 User Authentication plugin](https://github.com/nextcloud/user_external).
 
-### Configuration
+## Configuration
 
-Add the following to your `config.php`:
+Configure the plugin via the admin interface at **Settings** → **Administration** → **User VO**. Provide your VereinOnline API URL, username, and password.
 
-    'user_backends' => array(
-        array(
-            'class' => '\OCA\UserVO\UserVOAuth',
-            'arguments' => array(
-                'https://vereinonline.org/VEREINONLINE_URL', // VereinOnline API URL
-                'USERNAME', // VereinOnline API username
-                'PASSWORD', // VereinOnline API password
-            ),
+Alternatively, add this to your `config.php`:
+
+```php
+'user_backends' => array(
+    array(
+        'class' => '\OCA\UserVO\UserVOAuth',
+        'arguments' => array(
+            'https://vereinonline.org/YOUR_ORGANIZATION', // API URL
+            'API_USERNAME',                                // API username
+            'API_PASSWORD',                                // API password
         ),
     ),
+),
+```
+
+**Note:** Settings in `config.php` take precedence over admin interface settings. The admin interface shows which configuration is active and allows testing the connection.

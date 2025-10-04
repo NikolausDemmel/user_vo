@@ -5,5 +5,9 @@ return [
         ['name' => 'admin#scanDuplicates', 'url' => '/admin/scan-duplicates', 'verb' => 'GET'],
         ['name' => 'admin#exposeUser', 'url' => '/admin/expose-user', 'verb' => 'POST'],
         ['name' => 'admin#hideUser', 'url' => '/admin/hide-user', 'verb' => 'POST'],
+        ['name' => 'admin#getConfigurationStatus', 'url' => '/admin/config-status', 'verb' => 'GET'],
+        ['name' => 'admin#saveConfiguration', 'url' => '/admin/save-config', 'verb' => 'POST'],
+        ['name' => 'admin#testConfiguration', 'url' => '/admin/test-config', 'verb' => 'POST'],
+        ['name' => 'admin#clearConfiguration', 'url' => '/admin/clear-config', 'verb' => 'POST'],
     ]
 ]; 

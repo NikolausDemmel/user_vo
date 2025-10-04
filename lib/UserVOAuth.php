@@ -13,17 +13,72 @@ namespace OCA\UserVO;
 
 use function OCP\Log\logger;
 use OCA\UserVO\Base;
+use OCP\IConfig;
+use OCA\UserVO\Service\ConfigService;
 
 class UserVOAuth extends Base {
     private $apiUrl;
     private $username;
     private $password;
+    private $config;
+    private $configService;
 
-    public function __construct($apiUrl, $username, $password) {
+    public function __construct($apiUrl = null, $username = null, $password = null, IConfig $config = null) {
         parent::__construct('user_vo');
-        $this->apiUrl = $apiUrl;
-        $this->username = $username;
-        $this->password = $password;
+        $this->config = $config ?? \OC::$server->getConfig();
+        $this->configService = new ConfigService($this->config);
+
+        if ($apiUrl !== null && $username !== null && $password !== null) {
+            // Use constructor parameters (for backward compatibility / testing)
+            $this->apiUrl = $apiUrl;
+            $this->username = $username;
+            $this->password = $password;
+            logger('user_vo')->debug('Using configuration from constructor parameters');
+        } else {
+            // Load configuration using ConfigService (handles precedence: config.php > admin interface)
+            $configuration = $this->configService->loadConfiguration(maskPassword: false);
+            $this->apiUrl = $configuration['api_url'];
+            $this->username = $configuration['api_username'];
+            $this->password = $configuration['api_password'];
+        }
+
+        // Validate that we have all required configuration
+        if (empty($this->apiUrl) || empty($this->username) || empty($this->password)) {
+            logger('user_vo')->error('UserVO configuration is incomplete. Please configure via config.php or admin interface.');
+        }
+    }
+
+    /**
+     * Get current configuration source
+     * @return string 'config.php', 'admin_interface', or 'incomplete'
+     */
+    public function getConfigurationSource(): string {
+        return $this->configService->getConfigurationSource();
+    }
+
+    /**
+     * Get current configuration values
+     * @return array
+     */
+    public function getCurrentConfig(): array {
+        // Get masked configuration from ConfigService
+        $maskedConfig = $this->configService->loadConfiguration(maskPassword: true);
+
+        return [
+            'api_url' => $this->apiUrl,
+            'api_username' => $this->username,
+            'api_password' => $maskedConfig['api_password'], // Already masked by ConfigService
+            'source' => $this->getConfigurationSource(),
+            'sources' => $this->getConfigurationSources()
+        ];
+    }
+
+    /**
+     * Get detailed information about where each config value comes from
+     * @return array
+     */
+    public function getConfigurationSources(): array {
+        return $this->configService->getConfigurationSources();
     }
 
     /**
@@ -89,27 +144,27 @@ class UserVOAuth extends Base {
         curl_setopt($curl, CURLOPT_POST, 1);
         curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($curl, CURLOPT_HEADER, false);
-    
 
-    
+
+
         $response = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $error = curl_error($curl);
-    
+
         curl_close($curl);
 
 
-    
+
         if ($response === false) {
             logger('user_vo')->error('API request failed: ' . $error);
             return null;
         }
-    
+
         if ($httpCode !== 200) {
             logger('user_vo')->error('API request returned non-200 status code: ' . $httpCode);
             return null;
         }
-    
+
         return json_decode($response, true);
     }
 }
