@@ -270,6 +270,15 @@ class UserVOAuth extends Base {
                 $user->setSystemEMailAddress($voUserData['email']);
             }
 
+            // Update photo (if configured and available)
+            $syncPhoto = $this->config->getAppValue('user_vo', 'sync_photo', 'false') === 'true';
+            if ($syncPhoto) {
+                $photoUrl = $this->getPhotoUrl($voUserData['id']);
+                if ($photoUrl !== null) {
+                    $this->syncUserPhoto($uid, $photoUrl);
+                }
+            }
+
             // Update metadata in user_vo table
             $this->updateVOMetadata($uid, $voUserData);
 
@@ -282,6 +291,137 @@ class UserVOAuth extends Base {
                 'trace' => $e->getTraceAsString()
             ]);
             return false;
+        }
+    }
+
+    /**
+     * Get photo URL for user from VO GetMembers API
+     *
+     * @param string $voUserId VO user ID
+     * @return string|null Photo URL or null if not available
+     */
+    protected function getPhotoUrl(string $voUserId): ?string {
+        $token = 'A/' . $this->username . '/' . md5($this->password);
+        $url = $this->apiUrl . "/?api=GetMembers";
+        $data = [];
+
+        $response = $this->makeRequest($url, $data, $token);
+
+        if (!$response || !is_array($response)) {
+            logger('user_vo')->error("Failed to fetch members list for photo URL", [
+                'vo_user_id' => $voUserId
+            ]);
+            return null;
+        }
+
+        // Find user in members list
+        foreach ($response as $member) {
+            if (isset($member['id']) && $member['id'] === $voUserId) {
+                $photoUrl = $member['fotourl'] ?? null;
+
+                // Skip default anonymous photo
+                if ($photoUrl === 'https://vereinonline.org/admin/img/anonym.gif') {
+                    return null;
+                }
+
+                return $photoUrl;
+            }
+        }
+
+        logger('user_vo')->warning("User not found in members list", [
+            'vo_user_id' => $voUserId
+        ]);
+        return null;
+    }
+
+    /**
+     * Download and set user avatar from URL
+     *
+     * @param string $uid NC username
+     * @param string $photoUrl Photo URL
+     * @return bool Success
+     */
+    protected function syncUserPhoto(string $uid, string $photoUrl): array {
+        try {
+            // Validate URL is from vereinonline.org
+            $parsedUrl = parse_url($photoUrl);
+            if (!$parsedUrl || !isset($parsedUrl['host']) ||
+                !str_ends_with($parsedUrl['host'], 'vereinonline.org')) {
+                logger('user_vo')->warning("Photo URL not from vereinonline.org", [
+                    'uid' => $uid,
+                    'url' => $photoUrl
+                ]);
+                return ['success' => false, 'message' => 'Invalid URL'];
+            }
+
+            // Download photo
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $photoUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            $imageData = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($imageData === false || $httpCode !== 200) {
+                logger('user_vo')->error("Failed to download photo", [
+                    'uid' => $uid,
+                    'url' => $photoUrl,
+                    'http_code' => $httpCode
+                ]);
+                return ['success' => false, 'message' => 'Download failed (HTTP ' . $httpCode . ')'];
+            }
+
+            // Validate it's an image
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->buffer($imageData);
+            if (!str_starts_with($mimeType, 'image/')) {
+                logger('user_vo')->error("Downloaded file is not an image", [
+                    'uid' => $uid,
+                    'mime_type' => $mimeType
+                ]);
+                return ['success' => false, 'message' => 'Not an image'];
+            }
+
+            // Get user and set avatar
+            $user = \OC::$server->getUserManager()->get($uid);
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found'];
+            }
+
+            $avatar = \OC::$server->getAvatarManager()->getAvatar($uid);
+
+            // Create temp file for the image
+            $tmpFile = tmpfile();
+            fwrite($tmpFile, $imageData);
+            $tmpPath = stream_get_meta_data($tmpFile)['uri'];
+
+            // Set avatar
+            $image = new \OCP\Image();
+            $image->loadFromFile($tmpPath);
+
+            // Nextcloud requires square avatars - crop to square if needed
+            if ($image->width() !== $image->height()) {
+                $size = min($image->width(), $image->height());
+                $x = ($image->width() - $size) / 2;
+                $y = ($image->height() - $size) / 2;
+                $image->crop($x, $y, $size, $size);
+            }
+
+            $avatar->set($image);
+
+            fclose($tmpFile);
+
+            logger('user_vo')->info("Successfully synced user photo", ['uid' => $uid]);
+            return ['success' => true, 'message' => 'Synced'];
+
+        } catch (\Exception $e) {
+            logger('user_vo')->error("Error syncing user photo", [
+                'uid' => $uid,
+                'error' => $e->getMessage()
+            ]);
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
         }
     }
 

@@ -298,11 +298,20 @@ class AdminController extends Controller {
      */
     public function saveUserSyncSettings() {
         $syncEmail = $this->request->getParam('sync_email', 'false');
+        $syncPhoto = $this->request->getParam('sync_photo', 'false');
+
+        // Convert to string 'true' or 'false' for consistency
+        $emailValue = $syncEmail === 'true' || $syncEmail === true ? 'true' : 'false';
+        $photoValue = $syncPhoto === 'true' || $syncPhoto === true ? 'true' : 'false';
 
         // Store as string 'true' or 'false' for consistency
-        $this->configService->set('sync_email', $syncEmail === 'true' || $syncEmail === true ? 'true' : 'false');
+        $this->configService->set('sync_email', $emailValue);
+        $this->configService->set('sync_photo', $photoValue);
 
-        $this->logger->info('User sync settings updated', ['sync_email' => $syncEmail]);
+        $this->logger->info('User sync settings updated', [
+            'sync_email' => $emailValue,
+            'sync_photo' => $photoValue
+        ]);
 
         return new JSONResponse([
             'success' => true,
@@ -396,11 +405,32 @@ class AdminController extends Controller {
                     $user = \OC::$server->getUserManager()->get($uid);
                     $email = $user ? $user->getSystemEMailAddress() : '';
 
+                    // Check photo sync status
+                    $photoStatus = 'Not configured';
+                    $syncPhoto = $this->config->getAppValue('user_vo', 'sync_photo', 'false') === 'true';
+                    if ($syncPhoto) {
+                        // Get photo URL using reflection
+                        $getPhotoMethod = $reflection->getMethod('getPhotoUrl');
+                        $getPhotoMethod->setAccessible(true);
+                        $photoUrl = $getPhotoMethod->invoke($auth, $voUserId);
+
+                        if ($photoUrl === null) {
+                            $photoStatus = 'No photo in VO';
+                        } else {
+                            // Sync photo and get status
+                            $syncPhotoMethod = $reflection->getMethod('syncUserPhoto');
+                            $syncPhotoMethod->setAccessible(true);
+                            $photoResult = $syncPhotoMethod->invoke($auth, $uid, $photoUrl);
+                            $photoStatus = $photoResult['message'] ?? 'Unknown';
+                        }
+                    }
+
                     $results[] = [
                         'uid' => $uid,
                         'vo_user_id' => $voUserId,
                         'display_name' => $userData['displayname'] ?? '',
                         'email' => $email,
+                        'photo_status' => $photoStatus,
                         'last_synced' => $userData['last_synced'] ?? null,
                         'status' => 'success',
                         'message' => 'Synced successfully'

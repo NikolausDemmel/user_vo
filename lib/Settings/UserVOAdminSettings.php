@@ -22,7 +22,8 @@ class UserVOAdminSettings implements ISettings {
 
         // Get sync settings
         $syncSettings = [
-            'sync_email' => $this->configService->get('sync_email', 'true')
+            'sync_email' => $this->configService->get('sync_email', 'true'),
+            'sync_photo' => $this->configService->get('sync_photo', 'false')
         ];
 
         return new TemplateResponse('user_vo', 'admin', [

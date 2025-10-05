@@ -6,4 +6,5 @@ composer.lock
 test_vo_api.php
 test_user_*.php
 temp_*.php
+api_results*.txt
 docs/VO_API_FINDINGS.md

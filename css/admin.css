@@ -794,33 +794,118 @@
     color: #e9322d;
 }
 
-/* Dark theme */
+/* Dark theme - media query version */
+@media (prefers-color-scheme: dark) {
+    .user-sync-section {
+        background: #2d323b;
+        color: #f3f3f3;
+        border: 1px solid #444b58;
+    }
+
+    .user-sync-section h3,
+    .user-sync-section h4 {
+        color: #fff;
+    }
+
+    .user-sync-section p {
+        color: #f3f3f3;
+    }
+
+    .user-sync-section label {
+        color: #f3f3f3;
+    }
+
+    .user-sync-section em {
+        color: #aaa !important;
+    }
+
+    .vo-notice {
+        background: #1e3a5f;
+        border-left-color: #4da3ff;
+        color: #e3f2fd;
+    }
+
+    .vo-users-table {
+        background: #23272f;
+    }
+
+    .vo-users-table th {
+        background: #2a2e32;
+        border-bottom-color: #444b58;
+        color: #fff;
+    }
+
+    .vo-users-table td {
+        border-bottom-color: #444b58;
+        color: #f3f3f3;
+    }
+
+    .vo-users-table tr.success {
+        background: #1e3a2f;
+    }
+
+    .vo-users-table tr.failed {
+        background: #3a1e1e;
+    }
+
+    .vo-users-table tr.skipped {
+        background: #3a331e;
+    }
+}
+
+/* Dark theme - data attribute version */
 [data-theme-dark] .user-sync-section {
-    background: #1e2124;
+    background: #2d323b;
+    color: #f3f3f3;
+    border: 1px solid #444b58;
+}
+
+[data-theme-dark] .user-sync-section h3,
+[data-theme-dark] .user-sync-section h4 {
+    color: #fff;
+}
+
+[data-theme-dark] .user-sync-section p {
+    color: #f3f3f3;
+}
+
+[data-theme-dark] .user-sync-section label {
+    color: #f3f3f3;
+}
+
+[data-theme-dark] .user-sync-section em {
+    color: #aaa !important;
 }
 
 [data-theme-dark] .vo-notice {
     background: #1e3a5f;
-    border-left-color: #2196F3;
+    border-left-color: #4da3ff;
+    color: #e3f2fd;
+}
+
+[data-theme-dark] .vo-users-table {
+    background: #23272f;
 }
 
 [data-theme-dark] .vo-users-table th {
     background: #2a2e32;
     border-bottom-color: #444b58;
+    color: #fff;
 }
 
 [data-theme-dark] .vo-users-table td {
     border-bottom-color: #444b58;
+    color: #f3f3f3;
 }
 
 [data-theme-dark] .vo-users-table tr.success {
-    background: #1a2f1a;
+    background: #1e3a2f;
 }
 
 [data-theme-dark] .vo-users-table tr.failed {
-    background: #3a1a1a;
+    background: #3a1e1e;
 }
 
 [data-theme-dark] .vo-users-table tr.skipped {
-    background: #3a3520;
+    background: #3a331e;
 }

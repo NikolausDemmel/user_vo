@@ -194,6 +194,11 @@ style('user_vo', 'admin');
             <label for="sync-email"><?php p($l->t('Sync email addresses from VO (enabled by default)')); ?></label>
         </p>
         <p>
+            <input type="checkbox" id="sync-photo" name="sync_photo" class="checkbox"
+                   <?php if (($_['sync_settings']['sync_photo'] ?? 'false') === 'true'): ?>checked<?php endif; ?> />
+            <label for="sync-photo"><?php p($l->t('Sync profile pictures from VO (disabled by default)')); ?></label>
+        </p>
+        <p>
             <button id="save-user-sync-settings" class="button"><?php p($l->t('Save Sync Settings')); ?></button>
             <span id="user-sync-message" class="config-message"></span>
         </p>
@@ -215,6 +220,7 @@ style('user_vo', 'admin');
                         <th><?php p($l->t('VO User ID')); ?></th>
                         <th><?php p($l->t('Display Name')); ?></th>
                         <th><?php p($l->t('Email')); ?></th>
+                        <th><?php p($l->t('Photo')); ?></th>
                         <th><?php p($l->t('Last Synced')); ?></th>
                         <th><?php p($l->t('Status')); ?></th>
                     </tr>

@@ -421,6 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const saveUserSyncSettingsButton = document.getElementById('save-user-sync-settings');
     const syncEmailCheckbox = document.getElementById('sync-email');
+    const syncPhotoCheckbox = document.getElementById('sync-photo');
     const userSyncMessage = document.getElementById('user-sync-message');
     const syncAllUsersButton = document.getElementById('sync-all-users');
     const syncAllUsersStatus = document.getElementById('sync-all-users-status');
@@ -431,7 +432,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Save user sync settings
     if (saveUserSyncSettingsButton) {
         saveUserSyncSettingsButton.addEventListener('click', function() {
-            const syncEmail = syncEmailCheckbox.checked;
+            const syncEmail = syncEmailCheckbox ? syncEmailCheckbox.checked : false;
+            const syncPhoto = syncPhotoCheckbox ? syncPhotoCheckbox.checked : false;
 
             fetch(OC.generateUrl('/apps/user_vo/admin/save-user-sync-settings'), {
                 method: 'POST',
@@ -439,7 +441,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'requesttoken': OC.requestToken
                 },
-                body: JSON.stringify({ sync_email: syncEmail })
+                body: JSON.stringify({
+                    sync_email: syncEmail,
+                    sync_photo: syncPhoto
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -447,6 +452,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     userSyncMessage.textContent = data.message;
                     userSyncMessage.className = 'config-message success';
                     userSyncMessage.style.display = 'inline';
+
                     setTimeout(() => {
                         userSyncMessage.style.display = 'none';
                     }, 3000);
@@ -512,6 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td>${result.vo_user_id || '-'}</td>
                             <td>${result.display_name || '-'}</td>
                             <td>${result.email || '-'}</td>
+                            <td>${result.photo_status || '-'}</td>
                             <td>${result.last_synced || '-'}</td>
                             <td><span class="status-${result.status}">${statusIcon} ${result.message}</span></td>
                         `;
