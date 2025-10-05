@@ -114,6 +114,34 @@ make appstore
 
 The Makefile excludes development files (tests, Makefile, readme-dev.md, etc.) from the appstore package.
 
+### ⚠️ Security: .gitignore and Makefile Exclusions
+
+**IMPORTANT:** Whenever you add a file to `.gitignore`, also ensure it's excluded from the package in the `Makefile`.
+
+This is **critical for PHP files** that might contain credentials (config files, test files, etc.):
+
+1. **Add to `.gitignore`:**
+   ```
+   test_vo_api.php
+   config_*.php
+   ```
+
+2. **Add to `Makefile` exclusions:**
+   ```makefile
+   --exclude="../$(app_name)/test_vo_api.php" \
+   --exclude="../$(app_name)/config_*.php" \
+   ```
+
+**Why this matters:**
+- `.gitignore` prevents accidental commits to version control
+- Makefile exclusions prevent credentials from being packaged in releases
+- Both layers of protection are necessary
+
+**Files to watch for:**
+- `test_*.php` - Test scripts with API credentials
+- `config_*.php` - Configuration files with passwords
+- `temp_*.php` - Temporary files that might contain sensitive data
+
 ### Key Files for Development
 
 - `appinfo/info.xml` - App metadata, version, dependencies

@@ -151,6 +151,7 @@ appstore:
 	--exclude="../$(app_name)/.*" \
 	--exclude="../$(app_name)/js/.*" \
 	--exclude="../$(app_name)/test_vo_api.php" \
+	--exclude="../$(app_name)/test_user_*.php" \
 	--exclude="../$(app_name)/temp_*.php" \
 	--exclude="../$(app_name)/api_results.txt" \
 	--exclude="../$(app_name)/docs/VO_API_FINDINGS.md" \

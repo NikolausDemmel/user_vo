@@ -4,5 +4,6 @@ composer.lock
 
 # Development/testing files - DO NOT COMMIT
 test_vo_api.php
+test_user_*.php
 temp_*.php
 docs/VO_API_FINDINGS.md
