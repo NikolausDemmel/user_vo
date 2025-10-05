@@ -227,6 +227,7 @@ class UserVOAuth extends Base {
             'lastname' => $response['nachname'] ?? '',  // Last name
             'email' => $response['p_email'] ?? '',      // Personal email
             'group_ids' => $response['gruppenids'] ?? '',     // Comma-separated group IDs
+            'foto' => $response['foto'] ?? '',          // Photo filename
         ];
     }
 
@@ -272,9 +273,11 @@ class UserVOAuth extends Base {
 
             // Update photo (if configured and available)
             $syncPhoto = $this->config->getAppValue('user_vo', 'sync_photo', 'false') === 'true';
-            if ($syncPhoto) {
-                $photoUrl = $this->getPhotoUrl($voUserData['id']);
-                if ($photoUrl !== null) {
+            if ($syncPhoto && !empty($voUserData['foto'])) {
+                // Construct photo URL from foto filename
+                $photoUrl = $this->apiUrl . '/fotos/' . $voUserData['foto'];
+                // Skip default anonymous photo
+                if ($voUserData['foto'] !== 'anonym.gif') {
                     $this->syncUserPhoto($uid, $photoUrl);
                 }
             }
@@ -294,45 +297,6 @@ class UserVOAuth extends Base {
         }
     }
 
-    /**
-     * Get photo URL for user from VO GetMembers API
-     *
-     * @param string $voUserId VO user ID
-     * @return string|null Photo URL or null if not available
-     */
-    protected function getPhotoUrl(string $voUserId): ?string {
-        $token = 'A/' . $this->username . '/' . md5($this->password);
-        $url = $this->apiUrl . "/?api=GetMembers";
-        $data = [];
-
-        $response = $this->makeRequest($url, $data, $token);
-
-        if (!$response || !is_array($response)) {
-            logger('user_vo')->error("Failed to fetch members list for photo URL", [
-                'vo_user_id' => $voUserId
-            ]);
-            return null;
-        }
-
-        // Find user in members list
-        foreach ($response as $member) {
-            if (isset($member['id']) && $member['id'] === $voUserId) {
-                $photoUrl = $member['fotourl'] ?? null;
-
-                // Skip default anonymous photo
-                if ($photoUrl === 'https://vereinonline.org/admin/img/anonym.gif') {
-                    return null;
-                }
-
-                return $photoUrl;
-            }
-        }
-
-        logger('user_vo')->warning("User not found in members list", [
-            'vo_user_id' => $voUserId
-        ]);
-        return null;
-    }
 
     /**
      * Download and set user avatar from URL
@@ -462,7 +426,7 @@ class UserVOAuth extends Base {
                     ->values([
                         'uid' => $qb->createNamedParameter($uid),
                         'displayname' => $qb->createNamedParameter($displayName),
-                        'backend' => $qb->createNamedParameter(self::class),
+                        'backend' => $qb->createNamedParameter($this->backend),
                         'vo_user_id' => $qb->createNamedParameter($voUserData['id']),
                         'vo_username' => $qb->createNamedParameter($voUserData['username']),
                         'vo_group_ids' => $qb->createNamedParameter($voUserData['group_ids']),

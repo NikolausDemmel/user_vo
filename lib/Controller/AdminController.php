@@ -409,29 +409,8 @@ class AdminController extends Controller {
                 $user = \OC::$server->getUserManager()->get($uid);
                 $email = $user ? $user->getSystemEMailAddress() : '';
 
-                // Check photo status
+                // Check photo status - simplified, just show not applicable for batch view
                 $photoStatus = '-';
-                $syncPhoto = $this->config->getAppValue('user_vo', 'sync_photo', 'false') === 'true';
-                if ($syncPhoto && !empty($voUserId)) {
-                    // Get UserVOAuth instance
-                    $configuration = $this->configService->loadConfiguration(maskPassword: false);
-                    $auth = new UserVOAuth(
-                        $configuration['api_url'],
-                        $configuration['api_username'],
-                        $configuration['api_password'],
-                        $this->config
-                    );
-
-                    // Get photo URL using reflection
-                    $reflection = new \ReflectionClass($auth);
-                    $getPhotoMethod = $reflection->getMethod('getPhotoUrl');
-                    $getPhotoMethod->setAccessible(true);
-                    $photoUrl = $getPhotoMethod->invoke($auth, $voUserId);
-
-                    $photoStatus = $photoUrl ? 'Available in VO' : 'No photo in VO';
-                } elseif (!$syncPhoto) {
-                    $photoStatus = 'Not configured';
-                }
 
                 $results[] = [
                     'uid' => $uid,
@@ -558,24 +537,17 @@ class AdminController extends Controller {
                     $user = \OC::$server->getUserManager()->get($uid);
                     $email = $user ? $user->getSystemEMailAddress() : '';
 
-                    // Check photo sync status
+                    // Check photo sync status from voUserData
                     $photoStatus = 'Not configured';
                     $syncPhoto = $this->config->getAppValue('user_vo', 'sync_photo', 'false') === 'true';
-                    if ($syncPhoto) {
-                        // Get photo URL using reflection
-                        $getPhotoMethod = $reflection->getMethod('getPhotoUrl');
-                        $getPhotoMethod->setAccessible(true);
-                        $photoUrl = $getPhotoMethod->invoke($auth, $voUserId);
+                    $hasPhoto = !empty($voUserData['foto']) && $voUserData['foto'] !== 'anonym.gif';
 
-                        if ($photoUrl === null) {
-                            $photoStatus = 'No photo in VO';
-                        } else {
-                            // Sync photo and get status
-                            $syncPhotoMethod = $reflection->getMethod('syncUserPhoto');
-                            $syncPhotoMethod->setAccessible(true);
-                            $photoResult = $syncPhotoMethod->invoke($auth, $uid, $photoUrl);
-                            $photoStatus = $photoResult['message'] ?? 'Unknown';
-                        }
+                    if ($syncPhoto && $hasPhoto) {
+                        $photoStatus = 'Synced';
+                    } elseif ($hasPhoto) {
+                        $photoStatus = 'Available (not synced)';
+                    } elseif ($syncPhoto) {
+                        $photoStatus = 'No photo in VO';
                     }
 
                     $results[] = [
@@ -969,4 +941,5 @@ class AdminController extends Controller {
 
         return $oldestTime;
     }
+
 }

@@ -537,18 +537,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // View user metadata (with VO API calls, slower)
+    // View user metadata (with VO API calls)
     const viewUserMetadataButton = document.getElementById('view-user-metadata');
     if (viewUserMetadataButton) {
         viewUserMetadataButton.addEventListener('click', function() {
             viewUserMetadataButton.disabled = true;
-            userSyncResults.style.display = 'none';
-
-            const startTime = Date.now();
-
-            // Initial status with explanation
             syncAllUsersStatus.textContent = t('user_vo', 'Previewing from VO... (this may take a moment)');
             syncAllUsersStatus.className = 'sync-status syncing';
+            userSyncResults.style.display = 'none';
 
             fetch(OC.generateUrl('/apps/user_vo/admin/view-user-metadata'), {
                 method: 'GET',
@@ -561,12 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 viewUserMetadataButton.disabled = false;
 
                 if (data.success) {
-                    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-                    syncAllUsersStatus.textContent = t('user_vo', 'Completed {total} users in {seconds}s', {
-                        total: data.total,
-                        seconds: elapsedSeconds
-                    });
-                    syncAllUsersStatus.className = 'sync-status success';
+                    syncAllUsersStatus.textContent = '';
 
                     // Show summary
                     userSyncSummary.innerHTML = `
@@ -601,14 +592,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     syncAllUsersStatus.textContent = t('user_vo', 'Failed to load metadata:') + ' ' + (data.error || 'Unknown error');
                     syncAllUsersStatus.className = 'sync-status error';
-                    OC.Notification.showTemporary(t('user_vo', 'Error loading metadata') + ': ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
                 viewUserMetadataButton.disabled = false;
                 syncAllUsersStatus.textContent = t('user_vo', 'Error:') + ' ' + error;
                 syncAllUsersStatus.className = 'sync-status error';
-                OC.Notification.showTemporary(t('user_vo', 'Error loading metadata') + ': ' + error);
             });
         });
     }
@@ -617,13 +606,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (syncAllUsersButton) {
         syncAllUsersButton.addEventListener('click', function() {
             syncAllUsersButton.disabled = true;
-            userSyncResults.style.display = 'none';
-
-            const startTime = Date.now();
-
-            // Initial status with explanation
             syncAllUsersStatus.textContent = t('user_vo', 'Syncing from VO... (this may take a moment)');
             syncAllUsersStatus.className = 'sync-status syncing';
+            userSyncResults.style.display = 'none';
 
             fetch(OC.generateUrl('/apps/user_vo/admin/sync-all-users'), {
                 method: 'POST',
@@ -638,15 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (data.success) {
                     const summary = data.summary;
-                    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-
-                    syncAllUsersStatus.textContent = t('user_vo', 'Synced {total} users in {seconds}s ({success} succeeded, {failed} failed)', {
-                        total: summary.total,
-                        seconds: elapsedSeconds,
-                        success: summary.success,
-                        failed: summary.failed
-                    });
-                    syncAllUsersStatus.className = summary.failed > 0 ? 'sync-status warning' : 'sync-status success';
+                    syncAllUsersStatus.textContent = '';
 
                     // Show summary
                     userSyncSummary.innerHTML = `
@@ -692,14 +669,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     syncAllUsersStatus.textContent = t('user_vo', 'Sync failed:') + ' ' + (data.error || 'Unknown error');
                     syncAllUsersStatus.className = 'sync-status error';
-                    OC.Notification.showTemporary(t('user_vo', 'Error syncing users') + ': ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
                 syncAllUsersButton.disabled = false;
                 syncAllUsersStatus.textContent = t('user_vo', 'Error:') + ' ' + error;
                 syncAllUsersStatus.className = 'sync-status error';
-                OC.Notification.showTemporary(t('user_vo', 'Error syncing users') + ': ' + error);
             });
         });
     }
