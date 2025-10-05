@@ -320,6 +320,144 @@ class AdminController extends Controller {
     }
 
     /**
+     * View local user data (no API calls)
+     */
+    public function viewLocalData() {
+        try {
+            $results = [];
+
+            // Get all users from user_vo table
+            $qb = $this->connection->getQueryBuilder();
+            $qb->select('uid', 'vo_user_id', 'displayname', 'last_synced')
+                ->from('user_vo')
+                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')));
+            $result = $qb->executeQuery();
+            $users = $result->fetchAll();
+            $result->closeCursor();
+
+            foreach ($users as $userRow) {
+                $uid = $userRow['uid'];
+
+                // Skip users with !duplicate marker
+                if (str_ends_with($uid, '!duplicate')) {
+                    continue;
+                }
+
+                $voUserId = $userRow['vo_user_id'];
+
+                // Get user email
+                $user = \OC::$server->getUserManager()->get($uid);
+                $email = $user ? $user->getSystemEMailAddress() : '';
+
+                $results[] = [
+                    'uid' => $uid,
+                    'vo_user_id' => $voUserId ?: '-',
+                    'display_name' => $userRow['displayname'] ?: '-',
+                    'email' => $email ?: '-',
+                    'photo_status' => '-',
+                    'last_synced' => $userRow['last_synced'] ?: '-',
+                    'status' => 'info',
+                    'message' => $voUserId ? 'Has VO ID' : 'No VO user ID'
+                ];
+            }
+
+            return new JSONResponse([
+                'success' => true,
+                'results' => $results,
+                'total' => count($results)
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error('Error in viewLocalData: ' . $e->getMessage(), ['app' => 'user_vo']);
+            return new JSONResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * View user metadata without syncing (includes VO API calls)
+     */
+    public function viewUserMetadata() {
+        try {
+            $results = [];
+
+            // Get all users from user_vo table
+            $qb = $this->connection->getQueryBuilder();
+            $qb->select('uid', 'vo_user_id', 'displayname', 'last_synced')
+                ->from('user_vo')
+                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')));
+            $result = $qb->executeQuery();
+            $users = $result->fetchAll();
+            $result->closeCursor();
+
+            foreach ($users as $userRow) {
+                $uid = $userRow['uid'];
+
+                // Skip users with !duplicate marker
+                if (str_ends_with($uid, '!duplicate')) {
+                    continue;
+                }
+
+                $voUserId = $userRow['vo_user_id'];
+
+                // Get user email
+                $user = \OC::$server->getUserManager()->get($uid);
+                $email = $user ? $user->getSystemEMailAddress() : '';
+
+                // Check photo status
+                $photoStatus = '-';
+                $syncPhoto = $this->config->getAppValue('user_vo', 'sync_photo', 'false') === 'true';
+                if ($syncPhoto && !empty($voUserId)) {
+                    // Get UserVOAuth instance
+                    $configuration = $this->configService->loadConfiguration(maskPassword: false);
+                    $auth = new UserVOAuth(
+                        $configuration['api_url'],
+                        $configuration['api_username'],
+                        $configuration['api_password'],
+                        $this->config
+                    );
+
+                    // Get photo URL using reflection
+                    $reflection = new \ReflectionClass($auth);
+                    $getPhotoMethod = $reflection->getMethod('getPhotoUrl');
+                    $getPhotoMethod->setAccessible(true);
+                    $photoUrl = $getPhotoMethod->invoke($auth, $voUserId);
+
+                    $photoStatus = $photoUrl ? 'Available in VO' : 'No photo in VO';
+                } elseif (!$syncPhoto) {
+                    $photoStatus = 'Not configured';
+                }
+
+                $results[] = [
+                    'uid' => $uid,
+                    'vo_user_id' => $voUserId ?: '-',
+                    'display_name' => $userRow['displayname'] ?: '-',
+                    'email' => $email ?: '-',
+                    'photo_status' => $photoStatus,
+                    'last_synced' => $userRow['last_synced'] ?: '-',
+                    'status' => 'info',
+                    'message' => $voUserId ? 'Ready to sync' : 'No VO user ID'
+                ];
+            }
+
+            return new JSONResponse([
+                'success' => true,
+                'results' => $results,
+                'total' => count($results)
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error('Error in viewUserMetadata: ' . $e->getMessage(), ['app' => 'user_vo']);
+            return new JSONResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Manually sync all VO users
      */
     public function syncAllUsers() {

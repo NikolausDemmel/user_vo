@@ -470,11 +470,143 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // View local data (fast, no API calls)
+    const viewLocalDataButton = document.getElementById('view-local-data');
+    if (viewLocalDataButton) {
+        viewLocalDataButton.addEventListener('click', function() {
+            viewLocalDataButton.disabled = true;
+            syncAllUsersStatus.textContent = t('user_vo', 'Loading users...');
+            syncAllUsersStatus.className = 'sync-status syncing';
+            userSyncResults.style.display = 'none';
+
+            fetch(OC.generateUrl('/apps/user_vo/admin/view-local-data'), {
+                method: 'GET',
+                headers: {
+                    'requesttoken': OC.requestToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                viewLocalDataButton.disabled = false;
+
+                if (data.success) {
+                    syncAllUsersStatus.textContent = '';
+
+                    // Show summary
+                    userSyncSummary.innerHTML = `
+                        <p><strong>${t('user_vo', 'Local user data (database only):')}</strong></p>
+                        <ul>
+                            <li>${t('user_vo', 'Total users:')} ${data.total}</li>
+                        </ul>
+                    `;
+
+                    // Show results table
+                    userSyncList.innerHTML = '';
+                    data.results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.className = result.status;
+
+                        const statusIcon = '○';
+
+                        row.innerHTML = `
+                            <td>${result.uid}</td>
+                            <td>${result.vo_user_id || '-'}</td>
+                            <td>${result.display_name || '-'}</td>
+                            <td>${result.email || '-'}</td>
+                            <td>${result.photo_status || '-'}</td>
+                            <td>${result.last_synced || '-'}</td>
+                            <td><span class="status-${result.status}">${statusIcon} ${result.message}</span></td>
+                        `;
+                        userSyncList.appendChild(row);
+                    });
+
+                    userSyncResults.style.display = 'block';
+                } else {
+                    syncAllUsersStatus.textContent = t('user_vo', 'Failed to load data:') + ' ' + (data.error || 'Unknown error');
+                    syncAllUsersStatus.className = 'sync-status error';
+                    OC.Notification.showTemporary(t('user_vo', 'Error loading data') + ': ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                viewLocalDataButton.disabled = false;
+                syncAllUsersStatus.textContent = t('user_vo', 'Error:') + ' ' + error;
+                syncAllUsersStatus.className = 'sync-status error';
+                OC.Notification.showTemporary(t('user_vo', 'Error loading data') + ': ' + error);
+            });
+        });
+    }
+
+    // View user metadata (with VO API calls, slower)
+    const viewUserMetadataButton = document.getElementById('view-user-metadata');
+    if (viewUserMetadataButton) {
+        viewUserMetadataButton.addEventListener('click', function() {
+            viewUserMetadataButton.disabled = true;
+            syncAllUsersStatus.textContent = t('user_vo', 'Previewing from VO...');
+            syncAllUsersStatus.className = 'sync-status syncing';
+            userSyncResults.style.display = 'none';
+
+            fetch(OC.generateUrl('/apps/user_vo/admin/view-user-metadata'), {
+                method: 'GET',
+                headers: {
+                    'requesttoken': OC.requestToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                viewUserMetadataButton.disabled = false;
+
+                if (data.success) {
+                    syncAllUsersStatus.textContent = '';
+
+                    // Show summary
+                    userSyncSummary.innerHTML = `
+                        <p><strong>${t('user_vo', 'User metadata (not synced):')}</strong></p>
+                        <ul>
+                            <li>${t('user_vo', 'Total users:')} ${data.total}</li>
+                        </ul>
+                    `;
+
+                    // Show results table
+                    userSyncList.innerHTML = '';
+                    data.results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.className = result.status;
+
+                        const statusIcon = '○';
+
+                        row.innerHTML = `
+                            <td>${result.uid}</td>
+                            <td>${result.vo_user_id || '-'}</td>
+                            <td>${result.display_name || '-'}</td>
+                            <td>${result.email || '-'}</td>
+                            <td>${result.photo_status || '-'}</td>
+                            <td>${result.last_synced || '-'}</td>
+                            <td><span class="status-${result.status}">${statusIcon} ${result.message}</span></td>
+                        `;
+                        userSyncList.appendChild(row);
+                    });
+
+                    userSyncResults.style.display = 'block';
+                } else {
+                    syncAllUsersStatus.textContent = t('user_vo', 'Failed to load metadata:') + ' ' + (data.error || 'Unknown error');
+                    syncAllUsersStatus.className = 'sync-status error';
+                    OC.Notification.showTemporary(t('user_vo', 'Error loading metadata') + ': ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                viewUserMetadataButton.disabled = false;
+                syncAllUsersStatus.textContent = t('user_vo', 'Error:') + ' ' + error;
+                syncAllUsersStatus.className = 'sync-status error';
+                OC.Notification.showTemporary(t('user_vo', 'Error loading metadata') + ': ' + error);
+            });
+        });
+    }
+
     // Sync all users
     if (syncAllUsersButton) {
         syncAllUsersButton.addEventListener('click', function() {
             syncAllUsersButton.disabled = true;
-            syncAllUsersStatus.textContent = t('user_vo', 'Syncing users...');
+            syncAllUsersStatus.textContent = t('user_vo', 'Syncing from VO...');
             syncAllUsersStatus.className = 'sync-status syncing';
             userSyncResults.style.display = 'none';
 

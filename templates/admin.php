@@ -206,7 +206,9 @@ style('user_vo', 'admin');
         <h4><?php p($l->t('Manual User Sync')); ?></h4>
         <p><?php p($l->t('Trigger immediate synchronization for all users. This will fetch the latest data from VereinOnline for all user_vo users.')); ?></p>
         <p>
-            <button id="sync-all-users" class="button"><?php p($l->t('Sync All Users Now')); ?></button>
+            <button id="view-local-data" class="button"><?php p($l->t('View Users')); ?></button>
+            <button id="view-user-metadata" class="button"><?php p($l->t('Preview VO')); ?></button>
+            <button id="sync-all-users" class="button"><?php p($l->t('Sync from VO')); ?></button>
             <span id="sync-all-users-status"></span>
         </p>
 

@@ -781,6 +781,10 @@
     color: #9f6000;
 }
 
+.status-info {
+    color: #0082c9;
+}
+
 #user-sync-summary ul {
     margin: 10px 0;
     padding-left: 20px;
