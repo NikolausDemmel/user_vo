@@ -150,6 +150,11 @@ appstore:
 	--exclude="../$(app_name)/protractor\.*" \
 	--exclude="../$(app_name)/.*" \
 	--exclude="../$(app_name)/js/.*" \
+	--exclude="../$(app_name)/test_vo_api.php" \
+	--exclude="../$(app_name)/temp_*.php" \
+	--exclude="../$(app_name)/api_results.txt" \
+	--exclude="../$(app_name)/docs/VO_API_FINDINGS.md" \
+	--exclude="../$(app_name)/IMPLEMENTATION_PLAN.md" \
 	-f $(appstore_package_name).tar.gz ../$(app_name) \
 
 .PHONY: test
