@@ -247,4 +247,26 @@ class ConfigService {
 
         return true;
     }
+
+    /**
+     * Get an app configuration value
+     *
+     * @param string $key Configuration key
+     * @param string $default Default value if not set
+     * @return string Configuration value
+     */
+    public function get(string $key, string $default = ''): string {
+        return $this->config->getAppValue('user_vo', $key, $default);
+    }
+
+    /**
+     * Set an app configuration value
+     *
+     * @param string $key Configuration key
+     * @param string $value Configuration value
+     * @return void
+     */
+    public function set(string $key, string $value): void {
+        $this->config->setAppValue('user_vo', $key, $value);
+    }
 }

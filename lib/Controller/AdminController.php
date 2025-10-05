@@ -294,6 +294,150 @@ class AdminController extends Controller {
     }
 
     /**
+     * Save user sync settings
+     */
+    public function saveUserSyncSettings() {
+        $syncEmail = $this->request->getParam('sync_email', 'false');
+
+        // Store as string 'true' or 'false' for consistency
+        $this->configService->set('sync_email', $syncEmail === 'true' || $syncEmail === true ? 'true' : 'false');
+
+        $this->logger->info('User sync settings updated', ['sync_email' => $syncEmail]);
+
+        return new JSONResponse([
+            'success' => true,
+            'message' => 'Sync settings saved successfully.'
+        ]);
+    }
+
+    /**
+     * Manually sync all VO users
+     */
+    public function syncAllUsers() {
+        try {
+            $results = [];
+            $successCount = 0;
+            $failureCount = 0;
+            $skippedCount = 0;
+
+            // Get all users from user_vo table
+            $qb = $this->connection->getQueryBuilder();
+            $qb->select('uid', 'vo_user_id')
+                ->from('user_vo')
+                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')));
+            $result = $qb->executeQuery();
+            $users = $result->fetchAll();
+            $result->closeCursor();
+
+            // Get UserVOAuth instance to access sync methods
+            $configuration = $this->configService->loadConfiguration(maskPassword: false);
+            $auth = new UserVOAuth(
+                $configuration['api_url'],
+                $configuration['api_username'],
+                $configuration['api_password'],
+                $this->config
+            );
+
+            foreach ($users as $userRow) {
+                $uid = $userRow['uid'];
+
+                // Skip users with !duplicate marker
+                if (str_ends_with($uid, '!duplicate')) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                $voUserId = $userRow['vo_user_id'];
+
+                // If no VO user ID stored, skip (user hasn't logged in with new version yet)
+                if (empty($voUserId)) {
+                    $results[] = [
+                        'uid' => $uid,
+                        'status' => 'skipped',
+                        'message' => 'No VO user ID - will sync on next login'
+                    ];
+                    $skippedCount++;
+                    continue;
+                }
+
+                // Fetch user data from VO using reflection to access protected method
+                $reflection = new \ReflectionClass($auth);
+                $fetchMethod = $reflection->getMethod('fetchUserDataFromVO');
+                $fetchMethod->setAccessible(true);
+                $voUserData = $fetchMethod->invoke($auth, $voUserId);
+
+                if ($voUserData === null) {
+                    $results[] = [
+                        'uid' => $uid,
+                        'vo_user_id' => $voUserId,
+                        'status' => 'failed',
+                        'message' => 'Could not fetch data from VO'
+                    ];
+                    $failureCount++;
+                    continue;
+                }
+
+                // Sync user data using reflection
+                $syncMethod = $reflection->getMethod('syncUserData');
+                $syncMethod->setAccessible(true);
+                $success = $syncMethod->invoke($auth, $uid, $voUserData);
+
+                if ($success) {
+                    // Get last_synced from database
+                    $qb = $this->connection->getQueryBuilder();
+                    $qb->select('displayname', 'last_synced')
+                        ->from('user_vo')
+                        ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)));
+                    $userResult = $qb->executeQuery();
+                    $userData = $userResult->fetch();
+                    $userResult->closeCursor();
+
+                    // Get user email
+                    $user = \OC::$server->getUserManager()->get($uid);
+                    $email = $user ? $user->getSystemEMailAddress() : '';
+
+                    $results[] = [
+                        'uid' => $uid,
+                        'vo_user_id' => $voUserId,
+                        'display_name' => $userData['displayname'] ?? '',
+                        'email' => $email,
+                        'last_synced' => $userData['last_synced'] ?? null,
+                        'status' => 'success',
+                        'message' => 'Synced successfully'
+                    ];
+                    $successCount++;
+                } else {
+                    $results[] = [
+                        'uid' => $uid,
+                        'vo_user_id' => $voUserId,
+                        'status' => 'failed',
+                        'message' => 'Sync method returned false'
+                    ];
+                    $failureCount++;
+                }
+            }
+
+            return new JSONResponse([
+                'success' => true,
+                'summary' => [
+                    'total' => count($users),
+                    'success' => $successCount,
+                    'failed' => $failureCount,
+                    'skipped' => $skippedCount
+                ],
+                'results' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error('Error in syncAllUsers: ' . $e->getMessage(), ['app' => 'user_vo']);
+            return new JSONResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper to strip the !duplicate marker from a uid
      */
     private function stripDuplicateMarker($uid) {

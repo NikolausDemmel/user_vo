@@ -9,5 +9,7 @@ return [
         ['name' => 'admin#saveConfiguration', 'url' => '/admin/save-config', 'verb' => 'POST'],
         ['name' => 'admin#testConfiguration', 'url' => '/admin/test-config', 'verb' => 'POST'],
         ['name' => 'admin#clearConfiguration', 'url' => '/admin/clear-config', 'verb' => 'POST'],
+        ['name' => 'admin#saveUserSyncSettings', 'url' => '/admin/save-user-sync-settings', 'verb' => 'POST'],
+        ['name' => 'admin#syncAllUsers', 'url' => '/admin/sync-all-users', 'verb' => 'POST'],
     ]
 ]; 

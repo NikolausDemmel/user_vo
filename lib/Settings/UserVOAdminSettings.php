@@ -20,8 +20,14 @@ class UserVOAdminSettings implements ISettings {
         // Get configuration status from the service
         $configStatus = $this->configService->getConfigurationStatus();
 
+        // Get sync settings
+        $syncSettings = [
+            'sync_email' => $this->configService->get('sync_email', 'true')
+        ];
+
         return new TemplateResponse('user_vo', 'admin', [
-            'config_status' => $configStatus
+            'config_status' => $configStatus,
+            'sync_settings' => $syncSettings
         ], 'admin');
     }
 

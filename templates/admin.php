@@ -178,6 +178,52 @@ style('user_vo', 'admin');
         </div> <!-- Close colored configuration box (yellow/green/red) -->
     </div>
 
+    <!-- User Data Synchronization Section -->
+    <div class="user-sync-section">
+        <h3><?php p($l->t('User Data Synchronization')); ?></h3>
+
+        <div class="vo-notice">
+            <span class="icon icon-info"></span>
+            <?php p($l->t('User data (display name, email) is automatically synchronized from VereinOnline on every login. VO is the source of truth - manual changes in Nextcloud will be overwritten.')); ?>
+        </div>
+
+        <h4><?php p($l->t('Sync Options')); ?></h4>
+        <p>
+            <input type="checkbox" id="sync-email" name="sync_email" class="checkbox"
+                   <?php if (($_['sync_settings']['sync_email'] ?? 'true') === 'true'): ?>checked<?php endif; ?> />
+            <label for="sync-email"><?php p($l->t('Sync email addresses from VO (enabled by default)')); ?></label>
+        </p>
+        <p>
+            <button id="save-user-sync-settings" class="button"><?php p($l->t('Save Sync Settings')); ?></button>
+            <span id="user-sync-message" class="config-message"></span>
+        </p>
+
+        <h4><?php p($l->t('Manual User Sync')); ?></h4>
+        <p><?php p($l->t('Trigger immediate synchronization for all users. This will fetch the latest data from VereinOnline for all user_vo users.')); ?></p>
+        <p>
+            <button id="sync-all-users" class="button"><?php p($l->t('Sync All Users Now')); ?></button>
+            <span id="sync-all-users-status"></span>
+        </p>
+
+        <div id="user-sync-results" style="display:none; margin-top: 20px;">
+            <h4><?php p($l->t('Sync Results')); ?></h4>
+            <div id="user-sync-summary"></div>
+            <table class="vo-users-table">
+                <thead>
+                    <tr>
+                        <th><?php p($l->t('Username')); ?></th>
+                        <th><?php p($l->t('VO User ID')); ?></th>
+                        <th><?php p($l->t('Display Name')); ?></th>
+                        <th><?php p($l->t('Email')); ?></th>
+                        <th><?php p($l->t('Last Synced')); ?></th>
+                        <th><?php p($l->t('Status')); ?></th>
+                    </tr>
+                </thead>
+                <tbody id="user-sync-list"></tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- User Account Management Section -->
     <div class="duplicate-accounts-section">
         <h3><?php p($l->t('User Account Management')); ?></h3>

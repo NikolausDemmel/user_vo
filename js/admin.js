@@ -414,4 +414,130 @@ document.addEventListener('DOMContentLoaded', function() {
             OC.Notification.showTemporary(t('user_vo', 'Error hiding user') + ': ' + error);
         });
     }
+
+    // ========================================
+    // User Data Synchronization
+    // ========================================
+
+    const saveUserSyncSettingsButton = document.getElementById('save-user-sync-settings');
+    const syncEmailCheckbox = document.getElementById('sync-email');
+    const userSyncMessage = document.getElementById('user-sync-message');
+    const syncAllUsersButton = document.getElementById('sync-all-users');
+    const syncAllUsersStatus = document.getElementById('sync-all-users-status');
+    const userSyncResults = document.getElementById('user-sync-results');
+    const userSyncSummary = document.getElementById('user-sync-summary');
+    const userSyncList = document.getElementById('user-sync-list');
+
+    // Save user sync settings
+    if (saveUserSyncSettingsButton) {
+        saveUserSyncSettingsButton.addEventListener('click', function() {
+            const syncEmail = syncEmailCheckbox.checked;
+
+            fetch(OC.generateUrl('/apps/user_vo/admin/save-user-sync-settings'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'requesttoken': OC.requestToken
+                },
+                body: JSON.stringify({ sync_email: syncEmail })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    userSyncMessage.textContent = data.message;
+                    userSyncMessage.className = 'config-message success';
+                    userSyncMessage.style.display = 'inline';
+                    setTimeout(() => {
+                        userSyncMessage.style.display = 'none';
+                    }, 3000);
+                } else {
+                    userSyncMessage.textContent = data.message || 'Error saving settings';
+                    userSyncMessage.className = 'config-message error';
+                    userSyncMessage.style.display = 'inline';
+                }
+            })
+            .catch(error => {
+                userSyncMessage.textContent = 'Error: ' + error;
+                userSyncMessage.className = 'config-message error';
+                userSyncMessage.style.display = 'inline';
+            });
+        });
+    }
+
+    // Sync all users
+    if (syncAllUsersButton) {
+        syncAllUsersButton.addEventListener('click', function() {
+            syncAllUsersButton.disabled = true;
+            syncAllUsersStatus.textContent = t('user_vo', 'Syncing users...');
+            syncAllUsersStatus.className = 'sync-status syncing';
+            userSyncResults.style.display = 'none';
+
+            fetch(OC.generateUrl('/apps/user_vo/admin/sync-all-users'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'requesttoken': OC.requestToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                syncAllUsersButton.disabled = false;
+
+                if (data.success) {
+                    const summary = data.summary;
+                    syncAllUsersStatus.textContent = '';
+
+                    // Show summary
+                    userSyncSummary.innerHTML = `
+                        <p><strong>${t('user_vo', 'Sync completed:')}</strong></p>
+                        <ul>
+                            <li>${t('user_vo', 'Total users:')} ${summary.total}</li>
+                            <li class="success">${t('user_vo', 'Successfully synced:')} ${summary.success}</li>
+                            <li class="error">${t('user_vo', 'Failed:')} ${summary.failed}</li>
+                            <li>${t('user_vo', 'Skipped:')} ${summary.skipped}</li>
+                        </ul>
+                    `;
+
+                    // Show results table
+                    userSyncList.innerHTML = '';
+                    data.results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.className = result.status;
+
+                        const statusIcon = result.status === 'success' ? '✓' :
+                                         result.status === 'failed' ? '✗' : '○';
+
+                        row.innerHTML = `
+                            <td>${result.uid}</td>
+                            <td>${result.vo_user_id || '-'}</td>
+                            <td>${result.display_name || '-'}</td>
+                            <td>${result.email || '-'}</td>
+                            <td>${result.last_synced || '-'}</td>
+                            <td><span class="status-${result.status}">${statusIcon} ${result.message}</span></td>
+                        `;
+                        userSyncList.appendChild(row);
+                    });
+
+                    userSyncResults.style.display = 'block';
+
+                    OC.Notification.showTemporary(
+                        t('user_vo', 'User sync completed: {success} succeeded, {failed} failed', {
+                            success: summary.success,
+                            failed: summary.failed
+                        })
+                    );
+                } else {
+                    syncAllUsersStatus.textContent = t('user_vo', 'Sync failed:') + ' ' + (data.error || 'Unknown error');
+                    syncAllUsersStatus.className = 'sync-status error';
+                    OC.Notification.showTemporary(t('user_vo', 'Error syncing users') + ': ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                syncAllUsersButton.disabled = false;
+                syncAllUsersStatus.textContent = t('user_vo', 'Error:') + ' ' + error;
+                syncAllUsersStatus.className = 'sync-status error';
+                OC.Notification.showTemporary(t('user_vo', 'Error syncing users') + ': ' + error);
+            });
+        });
+    }
 });
