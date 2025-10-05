@@ -510,6 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         row.innerHTML = `
                             <td>${result.uid}</td>
+                            <td>${result.vo_username || '-'}</td>
                             <td>${result.vo_user_id || '-'}</td>
                             <td>${result.display_name || '-'}</td>
                             <td>${result.email || '-'}</td>
@@ -541,9 +542,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (viewUserMetadataButton) {
         viewUserMetadataButton.addEventListener('click', function() {
             viewUserMetadataButton.disabled = true;
-            syncAllUsersStatus.textContent = t('user_vo', 'Previewing from VO...');
-            syncAllUsersStatus.className = 'sync-status syncing';
             userSyncResults.style.display = 'none';
+
+            const startTime = Date.now();
+
+            // Initial status with explanation
+            syncAllUsersStatus.textContent = t('user_vo', 'Previewing from VO... (this may take a moment)');
+            syncAllUsersStatus.className = 'sync-status syncing';
 
             fetch(OC.generateUrl('/apps/user_vo/admin/view-user-metadata'), {
                 method: 'GET',
@@ -556,7 +561,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 viewUserMetadataButton.disabled = false;
 
                 if (data.success) {
-                    syncAllUsersStatus.textContent = '';
+                    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+                    syncAllUsersStatus.textContent = t('user_vo', 'Completed {total} users in {seconds}s', {
+                        total: data.total,
+                        seconds: elapsedSeconds
+                    });
+                    syncAllUsersStatus.className = 'sync-status success';
 
                     // Show summary
                     userSyncSummary.innerHTML = `
@@ -576,6 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         row.innerHTML = `
                             <td>${result.uid}</td>
+                            <td>${result.vo_username || '-'}</td>
                             <td>${result.vo_user_id || '-'}</td>
                             <td>${result.display_name || '-'}</td>
                             <td>${result.email || '-'}</td>
@@ -606,9 +617,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (syncAllUsersButton) {
         syncAllUsersButton.addEventListener('click', function() {
             syncAllUsersButton.disabled = true;
-            syncAllUsersStatus.textContent = t('user_vo', 'Syncing from VO...');
-            syncAllUsersStatus.className = 'sync-status syncing';
             userSyncResults.style.display = 'none';
+
+            const startTime = Date.now();
+
+            // Initial status with explanation
+            syncAllUsersStatus.textContent = t('user_vo', 'Syncing from VO... (this may take a moment)');
+            syncAllUsersStatus.className = 'sync-status syncing';
 
             fetch(OC.generateUrl('/apps/user_vo/admin/sync-all-users'), {
                 method: 'POST',
@@ -623,7 +638,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (data.success) {
                     const summary = data.summary;
-                    syncAllUsersStatus.textContent = '';
+                    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                    syncAllUsersStatus.textContent = t('user_vo', 'Synced {total} users in {seconds}s ({success} succeeded, {failed} failed)', {
+                        total: summary.total,
+                        seconds: elapsedSeconds,
+                        success: summary.success,
+                        failed: summary.failed
+                    });
+                    syncAllUsersStatus.className = summary.failed > 0 ? 'sync-status warning' : 'sync-status success';
 
                     // Show summary
                     userSyncSummary.innerHTML = `
@@ -647,6 +670,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         row.innerHTML = `
                             <td>${result.uid}</td>
+                            <td>${result.vo_username || '-'}</td>
                             <td>${result.vo_user_id || '-'}</td>
                             <td>${result.display_name || '-'}</td>
                             <td>${result.email || '-'}</td>

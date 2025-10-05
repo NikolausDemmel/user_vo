@@ -239,8 +239,8 @@ class UserVOAuth extends Base {
      */
     protected function syncUserData(string $uid, array $voUserData): bool {
         try {
-            // Username mismatch warning - VO username might have different case
-            if (strtolower($voUserData['username']) !== $uid) {
+            // Username mismatch warning - VO username might have different case (case-insensitive comparison)
+            if (strtolower($voUserData['username']) !== strtolower($uid)) {
                 logger('user_vo')->warning("Username mismatch during sync", [
                     'nc_uid' => $uid,
                     'vo_username' => $voUserData['username'],
@@ -449,6 +449,7 @@ class UserVOAuth extends Base {
                 $qb = $db->getQueryBuilder();
                 $qb->update('user_vo')
                     ->set('vo_user_id', $qb->createNamedParameter($voUserData['id']))
+                    ->set('vo_username', $qb->createNamedParameter($voUserData['username']))
                     ->set('vo_group_ids', $qb->createNamedParameter($voUserData['group_ids']))
                     ->set('last_synced', $qb->createNamedParameter(new \DateTime(), 'datetime'))
                     ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)));
@@ -463,6 +464,7 @@ class UserVOAuth extends Base {
                         'displayname' => $qb->createNamedParameter($displayName),
                         'backend' => $qb->createNamedParameter(self::class),
                         'vo_user_id' => $qb->createNamedParameter($voUserData['id']),
+                        'vo_username' => $qb->createNamedParameter($voUserData['username']),
                         'vo_group_ids' => $qb->createNamedParameter($voUserData['group_ids']),
                         'last_synced' => $qb->createNamedParameter(new \DateTime(), 'datetime')
                     ]);

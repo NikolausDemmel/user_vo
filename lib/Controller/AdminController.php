@@ -328,7 +328,7 @@ class AdminController extends Controller {
 
             // Get all users from user_vo table
             $qb = $this->connection->getQueryBuilder();
-            $qb->select('uid', 'vo_user_id', 'displayname', 'last_synced')
+            $qb->select('uid', 'vo_user_id', 'vo_username', 'displayname', 'last_synced')
                 ->from('user_vo')
                 ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')));
             $result = $qb->executeQuery();
@@ -344,6 +344,7 @@ class AdminController extends Controller {
                 }
 
                 $voUserId = $userRow['vo_user_id'];
+                $voUsername = $userRow['vo_username'];
 
                 // Get user email
                 $user = \OC::$server->getUserManager()->get($uid);
@@ -351,6 +352,7 @@ class AdminController extends Controller {
 
                 $results[] = [
                     'uid' => $uid,
+                    'vo_username' => $voUsername ?: '-',
                     'vo_user_id' => $voUserId ?: '-',
                     'display_name' => $userRow['displayname'] ?: '-',
                     'email' => $email ?: '-',
@@ -385,7 +387,7 @@ class AdminController extends Controller {
 
             // Get all users from user_vo table
             $qb = $this->connection->getQueryBuilder();
-            $qb->select('uid', 'vo_user_id', 'displayname', 'last_synced')
+            $qb->select('uid', 'vo_user_id', 'vo_username', 'displayname', 'last_synced')
                 ->from('user_vo')
                 ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')));
             $result = $qb->executeQuery();
@@ -401,6 +403,7 @@ class AdminController extends Controller {
                 }
 
                 $voUserId = $userRow['vo_user_id'];
+                $voUsername = $userRow['vo_username'];
 
                 // Get user email
                 $user = \OC::$server->getUserManager()->get($uid);
@@ -432,6 +435,7 @@ class AdminController extends Controller {
 
                 $results[] = [
                     'uid' => $uid,
+                    'vo_username' => $voUsername ?: '-',
                     'vo_user_id' => $voUserId ?: '-',
                     'display_name' => $userRow['displayname'] ?: '-',
                     'email' => $email ?: '-',
@@ -500,6 +504,12 @@ class AdminController extends Controller {
                 if (empty($voUserId)) {
                     $results[] = [
                         'uid' => $uid,
+                        'vo_username' => '',
+                        'vo_user_id' => '',
+                        'display_name' => '',
+                        'email' => '',
+                        'photo_status' => '',
+                        'last_synced' => '',
                         'status' => 'skipped',
                         'message' => 'No VO user ID - will sync on next login'
                     ];
@@ -516,7 +526,12 @@ class AdminController extends Controller {
                 if ($voUserData === null) {
                     $results[] = [
                         'uid' => $uid,
+                        'vo_username' => '',
                         'vo_user_id' => $voUserId,
+                        'display_name' => '',
+                        'email' => '',
+                        'photo_status' => '',
+                        'last_synced' => '',
                         'status' => 'failed',
                         'message' => 'Could not fetch data from VO'
                     ];
@@ -532,7 +547,7 @@ class AdminController extends Controller {
                 if ($success) {
                     // Get last_synced from database
                     $qb = $this->connection->getQueryBuilder();
-                    $qb->select('displayname', 'last_synced')
+                    $qb->select('vo_username', 'displayname', 'last_synced')
                         ->from('user_vo')
                         ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)));
                     $userResult = $qb->executeQuery();
@@ -565,6 +580,7 @@ class AdminController extends Controller {
 
                     $results[] = [
                         'uid' => $uid,
+                        'vo_username' => $userData['vo_username'] ?? '',
                         'vo_user_id' => $voUserId,
                         'display_name' => $userData['displayname'] ?? '',
                         'email' => $email,
@@ -577,7 +593,12 @@ class AdminController extends Controller {
                 } else {
                     $results[] = [
                         'uid' => $uid,
+                        'vo_username' => '',
                         'vo_user_id' => $voUserId,
+                        'display_name' => '',
+                        'email' => '',
+                        'photo_status' => '',
+                        'last_synced' => '',
                         'status' => 'failed',
                         'message' => 'Sync method returned false'
                     ];

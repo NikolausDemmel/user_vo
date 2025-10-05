@@ -734,6 +734,14 @@
     color: #0082c9;
 }
 
+.sync-status.success {
+    color: #0f8907;
+}
+
+.sync-status.warning {
+    color: #ff8c00;
+}
+
 .sync-status.error {
     color: #e9322d;
 }

@@ -218,7 +218,8 @@ style('user_vo', 'admin');
             <table class="vo-users-table">
                 <thead>
                     <tr>
-                        <th><?php p($l->t('Username')); ?></th>
+                        <th><?php p($l->t('NC Username')); ?></th>
+                        <th><?php p($l->t('VO Username')); ?></th>
                         <th><?php p($l->t('VO User ID')); ?></th>
                         <th><?php p($l->t('Display Name')); ?></th>
                         <th><?php p($l->t('Email')); ?></th>
