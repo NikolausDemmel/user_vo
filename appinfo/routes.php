@@ -10,6 +10,8 @@ return [
         ['name' => 'admin#testConfiguration', 'url' => '/admin/test-config', 'verb' => 'POST'],
         ['name' => 'admin#clearConfiguration', 'url' => '/admin/clear-config', 'verb' => 'POST'],
         ['name' => 'admin#saveUserSyncSettings', 'url' => '/admin/save-user-sync-settings', 'verb' => 'POST'],
+        ['name' => 'admin#saveNightlySyncSetting', 'url' => '/admin/save-nightly-sync', 'verb' => 'POST'],
+        ['name' => 'admin#getNightlySyncStatus', 'url' => '/admin/nightly-sync-status', 'verb' => 'GET'],
         ['name' => 'admin#previewLocalUsers', 'url' => '/admin/preview-local-users', 'verb' => 'GET'],
         ['name' => 'admin#previewVOUsers', 'url' => '/admin/preview-vo-users', 'verb' => 'GET'],
         ['name' => 'admin#syncFromVO', 'url' => '/admin/sync-from-vo', 'verb' => 'POST'],

@@ -203,6 +203,31 @@ style('user_vo', 'admin');
             <span id="user-sync-message" class="config-message"></span>
         </p>
 
+        <h4><?php p($l->t('Nightly Sync')); ?></h4>
+        <p>
+            <input type="checkbox" id="enable-nightly-sync" name="enable_nightly_sync" class="checkbox"
+                   <?php if (($_['nightly_sync']['enabled'] ?? false)): ?>checked<?php endif; ?> />
+            <label for="enable-nightly-sync"><?php p($l->t('Enable automatic nightly sync (runs once per day)')); ?></label>
+        </p>
+        <div id="nightly-sync-status" class="nightly-sync-status">
+            <div class="status-row">
+                <span class="status-label"><?php p($l->t('Last run:')); ?></span>
+                <span id="nightly-sync-last-run"></span>
+            </div>
+            <div class="status-row">
+                <span class="status-label"><?php p($l->t('Status:')); ?></span>
+                <span id="nightly-sync-status-badge" class="status-badge"></span>
+            </div>
+            <div class="status-row">
+                <span class="status-label"><?php p($l->t('Summary:')); ?></span>
+                <span id="nightly-sync-summary"></span>
+            </div>
+            <div id="nightly-sync-error-container" class="status-row" style="display: none;">
+                <span class="status-label"><?php p($l->t('Error:')); ?></span>
+                <span id="nightly-sync-error" class="error-message"></span>
+            </div>
+        </div>
+
         <h4><?php p($l->t('Manual User Sync')); ?></h4>
         <p><?php p($l->t('Trigger immediate synchronization for all users. This will fetch the latest data from VereinOnline for all user_vo users.')); ?></p>
         <p>

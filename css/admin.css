@@ -962,3 +962,120 @@
 [data-theme-dark] .status-deleted {
     color: #fbbf24;
 }
+
+/* Nightly Sync Status */
+.nightly-sync-status {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f8f8;
+    border-radius: 3px;
+    border-left: 3px solid #0082c9;
+}
+
+.nightly-sync-status .status-row {
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+}
+
+.nightly-sync-status .status-label {
+    font-weight: 600;
+    min-width: 100px;
+    color: #222;
+}
+
+.nightly-sync-status .status-badge {
+    padding: 4px 12px;
+    border-radius: 3px;
+    font-weight: 500;
+    font-size: 0.9em;
+}
+
+.nightly-sync-status .status-badge.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.nightly-sync-status .status-badge.failed {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.nightly-sync-status .status-badge.never {
+    background: #e2e3e5;
+    color: #383d41;
+    border: 1px solid #d6d8db;
+}
+
+.nightly-sync-status .error-message {
+    color: #d73a49;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .nightly-sync-status {
+        background: #2d323b;
+        border-left-color: #4da3ff;
+    }
+
+    .nightly-sync-status .status-label {
+        color: #f3f3f3;
+    }
+
+    .nightly-sync-status .status-badge.success {
+        background: #1e3a2f;
+        color: #34d399;
+        border-color: #34d399;
+    }
+
+    .nightly-sync-status .status-badge.failed {
+        background: #3a1e1e;
+        color: #f87171;
+        border-color: #f87171;
+    }
+
+    .nightly-sync-status .status-badge.never {
+        background: #2d323b;
+        color: #ccc;
+        border-color: #444b58;
+    }
+
+    .nightly-sync-status .error-message {
+        color: #f87171;
+    }
+}
+
+[data-theme-dark] .nightly-sync-status {
+    background: #2d323b;
+    border-left-color: #4da3ff;
+}
+
+[data-theme-dark] .nightly-sync-status .status-label {
+    color: #f3f3f3;
+}
+
+[data-theme-dark] .nightly-sync-status .status-badge.success {
+    background: #1e3a2f;
+    color: #34d399;
+    border-color: #34d399;
+}
+
+[data-theme-dark] .nightly-sync-status .status-badge.failed {
+    background: #3a1e1e;
+    color: #f87171;
+    border-color: #f87171;
+}
+
+[data-theme-dark] .nightly-sync-status .status-badge.never {
+    background: #2d323b;
+    color: #ccc;
+    border-color: #444b58;
+}
+
+[data-theme-dark] .nightly-sync-status .error-message {
+    color: #f87171;
+}

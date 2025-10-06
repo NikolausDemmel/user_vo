@@ -477,6 +477,104 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
+    // Nightly sync checkbox handler
+    const nightlySyncCheckbox = document.getElementById('enable-nightly-sync');
+    if (nightlySyncCheckbox) {
+        nightlySyncCheckbox.addEventListener('change', function() {
+            const enabled = this.checked;
+
+            fetch(OC.generateUrl('/apps/user_vo/admin/save-nightly-sync'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'requesttoken': OC.requestToken
+                },
+                body: JSON.stringify({ enabled: enabled })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    OC.Notification.showTemporary(t('user_vo', 'Nightly sync setting saved'));
+                    // Refresh status display
+                    loadNightlySyncStatus();
+                } else {
+                    OC.Notification.showTemporary(t('user_vo', 'Error saving nightly sync setting'), { type: 'error' });
+                }
+            })
+            .catch(error => {
+                OC.Notification.showTemporary(t('user_vo', 'Error:') + ' ' + error, { type: 'error' });
+            });
+        });
+
+        // Load status on page load
+        loadNightlySyncStatus();
+    }
+
+    // Function to load and display nightly sync status
+    function loadNightlySyncStatus() {
+        fetch(OC.generateUrl('/apps/user_vo/admin/nightly-sync-status'), {
+            method: 'GET',
+            headers: {
+                'requesttoken': OC.requestToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateNightlySyncStatusDisplay(data);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading nightly sync status:', error);
+        });
+    }
+
+    // Function to update the status display
+    function updateNightlySyncStatusDisplay(data) {
+        const statusBadge = document.getElementById('nightly-sync-status-badge');
+        const lastRunElement = document.getElementById('nightly-sync-last-run');
+        const summaryElement = document.getElementById('nightly-sync-summary');
+        const errorContainer = document.getElementById('nightly-sync-error-container');
+        const errorElement = document.getElementById('nightly-sync-error');
+
+        // Update status badge
+        statusBadge.className = 'status-badge ' + data.last_status;
+        if (data.last_status === 'success') {
+            statusBadge.textContent = t('user_vo', 'Success');
+        } else if (data.last_status === 'failed') {
+            statusBadge.textContent = t('user_vo', 'Failed');
+        } else {
+            statusBadge.textContent = t('user_vo', 'Never run');
+        }
+
+        // Update last run time
+        if (data.last_run) {
+            const date = new Date(data.last_run * 1000);
+            lastRunElement.textContent = date.toLocaleString();
+        } else {
+            lastRunElement.textContent = t('user_vo', 'Never');
+        }
+
+        // Update summary
+        if (data.last_summary && data.last_summary.total !== undefined) {
+            const summary = data.last_summary;
+            summaryElement.textContent = t('user_vo', '{synced} users synced, {failed} failed', {
+                synced: summary.synced || 0,
+                failed: summary.failed || 0
+            });
+        } else {
+            summaryElement.textContent = t('user_vo', 'No sync data available');
+        }
+
+        // Update error display
+        if (data.last_error && data.last_error.trim() !== '') {
+            errorElement.textContent = data.last_error;
+            errorContainer.style.display = 'flex';
+        } else {
+            errorContainer.style.display = 'none';
+        }
+    }
+
     // View local data (fast, no API calls)
     const viewLocalDataButton = document.getElementById('view-local-data');
     if (viewLocalDataButton) {

@@ -31,4 +31,7 @@ The [documentation](https://github.com/NikolausDemmel/user_vo) describes how thi
     <admin>OCA\UserVO\Settings\UserVOAdminSettings</admin>
     <admin-section>OCA\UserVO\Sections\UserVOAdminSection</admin-section>
 </settings>
+	<background-jobs>
+		<job>OCA\UserVO\Cron\SyncUsersJob</job>
+	</background-jobs>
 </info>

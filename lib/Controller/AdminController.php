@@ -320,6 +320,42 @@ class AdminController extends Controller {
     }
 
     /**
+     * Save nightly sync setting
+     */
+    public function saveNightlySyncSetting() {
+        $enabled = $this->request->getParam('enabled', false);
+
+        $this->config->setAppValue('user_vo', 'enable_nightly_sync', $enabled ? 'true' : 'false');
+
+        return new JSONResponse([
+            'success' => true,
+            'message' => 'Nightly sync setting saved successfully.'
+        ]);
+    }
+
+    /**
+     * Get nightly sync status
+     */
+    public function getNightlySyncStatus() {
+        $enabled = $this->config->getAppValue('user_vo', 'enable_nightly_sync', 'false') === 'true';
+        $lastRun = $this->config->getAppValue('user_vo', 'nightly_sync_last_run', '');
+        $lastStatus = $this->config->getAppValue('user_vo', 'nightly_sync_last_status', 'never');
+        $lastError = $this->config->getAppValue('user_vo', 'nightly_sync_last_error', '');
+        $lastSummary = $this->config->getAppValue('user_vo', 'nightly_sync_last_summary', '{}');
+
+        $summary = json_decode($lastSummary, true);
+
+        return new JSONResponse([
+            'success' => true,
+            'enabled' => $enabled,
+            'last_run' => $lastRun ? (int)$lastRun : null,
+            'last_status' => $lastStatus,
+            'last_error' => $lastError,
+            'last_summary' => $summary
+        ]);
+    }
+
+    /**
      * Preview local user data (no API calls)
      */
     public function previewLocalUsers() {

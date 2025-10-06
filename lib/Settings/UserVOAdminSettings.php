@@ -26,9 +26,15 @@ class UserVOAdminSettings implements ISettings {
             'sync_photo' => $this->configService->get('sync_photo', 'false')
         ];
 
+        // Get nightly sync settings
+        $nightlySync = [
+            'enabled' => $this->configService->get('enable_nightly_sync', 'false') === 'true'
+        ];
+
         return new TemplateResponse('user_vo', 'admin', [
             'config_status' => $configStatus,
-            'sync_settings' => $syncSettings
+            'sync_settings' => $syncSettings,
+            'nightly_sync' => $nightlySync
         ], 'admin');
     }
 
