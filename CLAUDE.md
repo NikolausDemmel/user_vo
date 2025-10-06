@@ -8,8 +8,9 @@ This plugin enables Nextcloud to authenticate users using their VereinOnline cre
 
 **Key Features:**
 - External authentication via VereinOnline API
-- User display names cached in local database table `user_vo`
-- Admin interface for configuration and duplicate user management
+- Automatic user data synchronization (display name, email, profile photo)
+- Configurable nightly background sync
+- Admin interface for configuration, user management, and sync control
 - Support for both `config.php` and admin UI configuration
 - Compatible with Nextcloud 24-31
 
@@ -20,7 +21,7 @@ This plugin enables Nextcloud to authenticate users using their VereinOnline cre
 ```
 lib/
 ├── AppInfo/Application.php      # App bootstrap, backend registration
-├── UserVOAuth.php               # Main authentication logic
+├── UserVOAuth.php               # Main authentication & user sync logic
 ├── Base.php                     # Base class for user backend
 ├── Controller/
 │   └── AdminController.php      # Admin settings API endpoints
@@ -29,17 +30,23 @@ lib/
 │   └── UserVOAdminSection.php   # Admin section registration
 ├── Service/
 │   └── ConfigService.php        # Configuration management
+├── Cron/
+│   └── SyncUsersJob.php         # Background job for nightly sync
 └── Migration/
-    └── Version1000Date...php    # Database schema
+    └── Version100XDate...php    # Database schema migrations
 ```
 
-### Authentication Flow
+### Authentication & Sync Flow
 
 1. User enters credentials at Nextcloud login
 2. `UserVOAuth::checkCanonicalPassword()` is called
 3. API request sent to VereinOnline with credentials
-4. On success, user record created/updated in `user_vo` table
-5. User logged into Nextcloud
+4. On success:
+   - User record created/updated in `user_vo` table
+   - User data fetched from VO API (`GetMember` endpoint)
+   - Display name, email, and optionally photo synced from VO
+   - User metadata updated (VO user ID, last sync timestamp)
+5. User logged into Nextcloud with fresh data from VO
 
 ### Configuration Precedence
 
@@ -80,12 +87,24 @@ Add to your Nextcloud `config/config.php`:
 ### Configuration via Admin Interface
 
 Navigate to **Settings** → **Administration** → **User VO** to:
+
+**API Configuration:**
 - Set API URL, username, and password
 - Test connection to VereinOnline API
 - View active configuration source
-- Manage duplicate users (from case-sensitivity bug)
 
-The admin interface shows which configuration is active and allows testing.
+**User Data Synchronization:**
+- Configure sync options (email, profile photos)
+- Enable/disable nightly automatic sync
+- View sync status (last run, success/failed, summary)
+- Manually trigger sync for all users
+- Preview local users and VO data
+
+**User Account Management:**
+- Manage duplicate users (from case-sensitivity bug)
+- Scan for and manage user accounts
+
+The admin interface shows which configuration is active and provides comprehensive sync control.
 
 ## Database Schema
 
@@ -95,9 +114,21 @@ The plugin uses table `oc_user_vo` (prefix may vary):
 CREATE TABLE oc_user_vo (
     uid VARCHAR(64) PRIMARY KEY,
     displayname VARCHAR(64),
-    backend VARCHAR(64)
+    backend VARCHAR(64),
+    vo_user_id VARCHAR(64),           -- VereinOnline user ID
+    vo_username VARCHAR(64),          -- Exact VO username (for case-insensitive matching)
+    vo_group_ids TEXT,                -- Cached group memberships (JSON)
+    last_synced DATETIME,             -- Last sync timestamp
+    INDEX idx_vo_user_id (vo_user_id)
 );
 ```
+
+**Column purposes:**
+- `uid`, `displayname`, `backend`: Core user identification (legacy)
+- `vo_user_id`: Links to VereinOnline user ID for API calls
+- `vo_username`: Stores exact VO username for case-insensitive comparison
+- `vo_group_ids`: Cached group memberships for future group sync feature
+- `last_synced`: Tracks when user data was last synchronized
 
 **Important:** If you modify `user_backends` configuration, update the `backend` field to match, or users will lose their display names.
 
@@ -163,6 +194,39 @@ This is **critical for PHP files** that might contain credentials (config files,
 - Existing users with mixed-case usernames remain functional
 - Admin UI provides duplicate management tools
 
+## User Data Synchronization
+
+### Sync Behavior
+
+**VereinOnline is the source of truth** - all user data is automatically synchronized:
+
+- **On every login**: User data is fetched from VO and updated in Nextcloud
+- **Nightly sync** (optional): Background job runs every 24 hours when enabled
+- **Manual sync**: Admins can trigger immediate sync for all users
+
+**What gets synced:**
+- ✅ Display name (firstname + lastname) - always enabled
+- ✅ Email address - configurable (enabled by default)
+- ✅ Profile photo - configurable (disabled by default)
+
+**Important:** Manual changes to user data in Nextcloud will be overwritten on next sync.
+
+### Nightly Sync Configuration
+
+Background job settings (in admin interface):
+- **Disabled by default** - must be explicitly enabled
+- **Interval**: Runs every 24 hours
+- **Execution tracking**: Stores last run time, status, error messages, sync summary
+- **Admin visibility**: Shows Last run → Status → Summary with color-coded badges
+
+### Background Job Management
+
+The nightly sync is implemented as a Nextcloud background job (`lib/Cron/SyncUsersJob.php`). It:
+- Checks if sync is enabled before running
+- Uses reflection to access protected sync methods
+- Stores execution tracking in app config (no additional database tables)
+- Handles errors gracefully and logs detailed information
+
 ## API Integration
 
 ### VereinOnline API Authentication
@@ -173,8 +237,9 @@ The plugin uses token-based authentication:
 $token = 'A/' . $username . '/' . md5($password);
 ```
 
-### API Endpoint
+### API Endpoints Used
 
+**VerifyLogin** - User authentication:
 ```
 POST {api_url}/?api=VerifyLogin
 Authorization: {token}
@@ -186,9 +251,29 @@ Content-Type: application/json
     "result": "id"
 }
 ```
-
 Response on success: `["user_id"]`
-Response on failure: `{"error": "message"}`
+
+**GetMember** - Fetch user data:
+```
+POST {api_url}/?api=GetMember
+Authorization: {token}
+Content-Type: application/json
+
+{
+    "id": "user_id"
+}
+```
+Response: User object with fields `vorname`, `nachname`, `p_email`, `foto`, `gruppenids`, etc.
+
+**GetMembers** - Fetch user list with photo URLs:
+```
+POST {api_url}/?api=GetMembers
+Authorization: {token}
+Content-Type: application/json
+
+{}
+```
+Response: Array of user objects with `fotourl` field containing full photo URLs
 
 ## Troubleshooting
 
@@ -227,7 +312,13 @@ Common log messages:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Current version: 0.2.0** (2025-10-04)
+**Latest:** Version 0.2.3-dev (unreleased)
+- User data synchronization (display name, email, profile photos)
+- Nightly background sync with status tracking
+- Manual sync for all users
+- Enhanced admin interface
+
+**Previous:** Version 0.2.0 (2025-10-04)
 - Fixed case sensitivity bug causing duplicate accounts
 - Added admin interface for configuration and duplicate management
 

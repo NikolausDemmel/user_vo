@@ -35,6 +35,7 @@ use OCP\Migration\SimpleMigrationStep;
 /**
  * Add user metadata columns for VO synchronization:
  * - vo_user_id: VereinOnline user ID from API
+ * - vo_username: Exact username from VO (for case-insensitive matching)
  * - vo_group_ids: Cached group memberships (JSON)
  * - last_synced: Last sync timestamp
  */
@@ -60,6 +61,16 @@ class Version1001Date20251005000000 extends SimpleMigrationStep {
 					'length' => 64,
 				]);
 				$output->info('Added column vo_user_id to user_vo table');
+			}
+
+			// Add vo_username column if it doesn't exist
+			if (!$table->hasColumn('vo_username')) {
+				$table->addColumn('vo_username', Types::STRING, [
+					'notnull' => false,
+					'length' => 64,
+					'comment' => 'Exact username from VereinOnline (for case-insensitive matching)'
+				]);
+				$output->info('Added column vo_username to user_vo table');
 			}
 
 			// Add vo_group_ids column if it doesn't exist

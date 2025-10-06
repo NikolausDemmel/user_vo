@@ -2,12 +2,13 @@ VereinOnline user authentication
 ============================
 
 
-**Authenticate user login against the [VereinOnline](https://vereinonline.org/) API.**
+**Authenticate user login against the [VereinOnline](https://vereinonline.org/) API with automatic user data synchronization.**
 
 Passwords are not stored locally; authentication always happens against the
-remote server.
+remote server. User data (display name, email, profile photos) is automatically
+synchronized from VereinOnline on login and optionally via nightly background jobs.
 
-It stores users and their display name in its own database table `user_vo`. When
+User information is stored in the database table `user_vo`. When
 modifying the `user_backends` configuration, you need to update the database
 table's `backend` field, or your users will lose their configured display name.
 
@@ -22,6 +23,8 @@ the database. ⚠⚠
 User Authentication plugin](https://github.com/nextcloud/user_external).
 
 ## Configuration
+
+### API Configuration
 
 Configure the plugin via the admin interface at **Settings** → **Administration** → **User VO**. Provide your VereinOnline API URL, username, and password.
 
@@ -41,3 +44,25 @@ Alternatively, add this to your `config.php`:
 ```
 
 **Note:** Settings in `config.php` take precedence over admin interface settings. The admin interface shows which configuration is active and allows testing the connection.
+
+### User Data Synchronization
+
+The admin interface provides control over user data synchronization:
+
+**Sync Options:**
+- **Email sync** (enabled by default): Synchronize email addresses from VereinOnline
+- **Photo sync** (disabled by default): Synchronize profile pictures from VereinOnline
+- Display name sync is always enabled
+
+**Nightly Sync:**
+- **Disabled by default** - enable via checkbox in admin interface
+- Runs automatically every 24 hours when enabled
+- Shows status: last run time, success/failed, sync summary
+- Useful for keeping user data up-to-date without requiring login
+
+**Manual Sync:**
+- Trigger immediate sync for all users via "Sync from VO" button
+- Preview local users and VO data before syncing
+- View detailed sync results and status
+
+**Important:** VereinOnline is the source of truth. Manual changes to user data in Nextcloud will be overwritten on next sync.
