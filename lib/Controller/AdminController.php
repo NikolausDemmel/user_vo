@@ -578,6 +578,52 @@ class AdminController extends Controller {
                 $this->config
             );
 
+            // Auto-populate missing vo_user_ids from GetMembers (one-time migration after upgrade)
+            $usersNeedingIds = array_filter($users, fn($u) => empty($u['vo_user_id']) && !str_ends_with($u['uid'], '!duplicate'));
+
+            if (!empty($usersNeedingIds)) {
+                $this->logger->info("Auto-populating VO user IDs for existing users", ['count' => count($usersNeedingIds)]);
+
+                // Build list of target usernames (lowercase)
+                $targetUsernames = array_map(fn($u) => strtolower($u['uid']), $usersNeedingIds);
+
+                // Fetch members map from VO API (optimized to stop early)
+                $reflection = new \ReflectionClass($auth);
+                $mapMethod = $reflection->getMethod('fetchMembersMapForUsers');
+                $mapMethod->setAccessible(true);
+                $membersMap = $mapMethod->invoke($auth, $targetUsernames);
+
+                // Update database with vo_user_ids
+                $populated = 0;
+                foreach ($usersNeedingIds as $user) {
+                    $uid = $user['uid'];
+                    $uidLower = strtolower($uid);
+
+                    if (isset($membersMap[$uidLower])) {
+                        $updateQb = $this->connection->getQueryBuilder();
+                        $updateQb->update('user_vo')
+                            ->set('vo_user_id', $updateQb->createNamedParameter($membersMap[$uidLower]['vo_user_id']))
+                            ->set('vo_username', $updateQb->createNamedParameter($membersMap[$uidLower]['vo_username']))
+                            ->where($updateQb->expr()->eq('uid', $updateQb->createNamedParameter($uid)))
+                            ->andWhere($updateQb->expr()->eq('backend', $updateQb->createNamedParameter('user_vo')));
+                        $updateQb->executeStatement();
+                        $populated++;
+                    }
+                }
+
+                $this->logger->info("Auto-populated VO user IDs", ['populated' => $populated]);
+
+                // Re-query users to get updated vo_user_ids
+                $qb = $this->connection->getQueryBuilder();
+                $qb->select('uid', 'vo_user_id')
+                    ->from('user_vo')
+                    ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')))
+                    ->orderBy('uid', 'ASC');
+                $result = $qb->executeQuery();
+                $users = $result->fetchAll();
+                $result->closeCursor();
+            }
+
             foreach ($users as $userRow) {
                 $uid = $userRow['uid'];
 

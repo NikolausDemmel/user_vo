@@ -233,6 +233,135 @@ class UserVOAuth extends Base {
     }
 
     /**
+     * Fetch members from VO and create username mapping for specific NC users
+     *
+     * This is expensive (O(n) API calls) but optimized to stop once all target users are found.
+     * Uses fuzzy matching on names to prioritize likely candidates.
+     * Only needed once after upgrade to populate missing vo_user_ids for existing users.
+     *
+     * @param array $targetUsernames Array of NC usernames to find (lowercase)
+     * @return array Map of lowercase NC username => ['vo_user_id' => ..., 'vo_username' => ...]
+     */
+    protected function fetchMembersMapForUsers(array $targetUsernames): array {
+        $token = 'A/' . $this->username . '/' . md5($this->password);
+
+        // First, get list of all member IDs
+        $listUrl = $this->apiUrl . "/?api=GetMembers";
+        $listResponse = $this->makeRequest($listUrl, [], $token);
+
+        if (!$listResponse || !is_array($listResponse)) {
+            logger('user_vo')->error("Failed to fetch members list from VO");
+            return [];
+        }
+
+        $totalMembers = count($listResponse);
+        $targetCount = count($targetUsernames);
+        logger('user_vo')->info("Searching for NC users in VO members", [
+            'target_users' => $targetCount,
+            'total_vo_members' => $totalMembers
+        ]);
+
+        // Prioritize members using fuzzy name matching
+        // GetMembers returns "name" field like "Mustermann, Maximilian"
+        // NC username might be "maximilian.mustermann" or "maxmustermann"
+        $prioritized = [];
+        $rest = [];
+
+        foreach ($listResponse as $member) {
+            $score = 0;
+            $memberName = strtolower($member['name'] ?? '');
+
+            // Extract name parts from "Lastname, Firstname" format
+            $nameParts = array_map('trim', explode(',', $memberName));
+
+            foreach ($targetUsernames as $username) {
+                // Check if username contains parts of the VO name
+                foreach ($nameParts as $part) {
+                    if (!empty($part) && (
+                        strpos($username, $part) !== false ||
+                        strpos($part, $username) !== false ||
+                        levenshtein(substr($username, 0, 10), substr($part, 0, 10)) <= 2
+                    )) {
+                        $score += 1;
+                    }
+                }
+            }
+
+            if ($score > 0) {
+                $prioritized[] = ['member' => $member, 'score' => $score];
+            } else {
+                $rest[] = $member;
+            }
+        }
+
+        // Sort prioritized by score (highest first)
+        usort($prioritized, fn($a, $b) => $b['score'] <=> $a['score']);
+
+        // Build search order: prioritized candidates first, then rest
+        $searchOrder = array_merge(
+            array_map(fn($p) => $p['member'], $prioritized),
+            $rest
+        );
+
+        logger('user_vo')->info("Prioritized likely candidates using name matching", [
+            'prioritized' => count($prioritized),
+            'rest' => count($rest)
+        ]);
+
+        $map = [];
+        $getMemberUrl = $this->apiUrl . "/?api=GetMember";
+        $checked = 0;
+
+        foreach ($searchOrder as $member) {
+            // Stop early if we've found all target users
+            if (count($map) >= $targetCount) {
+                logger('user_vo')->info("Found all target users, stopping early", [
+                    'checked' => $checked,
+                    'total' => $totalMembers
+                ]);
+                break;
+            }
+
+            $checked++;
+
+            // Fetch full member data to get userlogin
+            $memberData = $this->makeRequest($getMemberUrl, ['id' => $member['id']], $token);
+
+            if (!$memberData || !is_array($memberData)) {
+                continue;
+            }
+
+            // Skip members without login credentials (not NC users)
+            if (empty($memberData['userlogin'])) {
+                continue;
+            }
+
+            // Normalize username to lowercase for case-insensitive matching
+            $ncUsername = strtolower($memberData['userlogin']);
+
+            // Only add if this is one of our target users
+            if (in_array($ncUsername, $targetUsernames)) {
+                $map[$ncUsername] = [
+                    'vo_user_id' => $memberData['id'],
+                    'vo_username' => $memberData['userlogin'], // Preserve original case
+                ];
+                logger('user_vo')->info("Found match", [
+                    'nc_username' => $ncUsername,
+                    'vo_user_id' => $memberData['id'],
+                    'position' => $checked
+                ]);
+            }
+        }
+
+        logger('user_vo')->info("Built members map from VO", [
+            'found' => count($map),
+            'target' => $targetCount,
+            'checked' => $checked
+        ]);
+        return $map;
+    }
+
+    /**
      * Synchronize user data from VO to Nextcloud
      *
      * @param string $uid NC username (lowercase canonical)
