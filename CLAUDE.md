@@ -134,6 +134,30 @@ CREATE TABLE oc_user_vo (
 
 ## Development
 
+### Creating a Release
+
+Follow these steps to create a new release (see `readme-dev.md` for details):
+
+1. **Update version** in `appinfo/info.xml` (e.g., to `0.3.0`)
+2. **Update CHANGELOG.md** with the new version, date, and changes. Add the diff link at the bottom.
+3. **Commit all changes**: `git add . && git commit -m "Release v0.3.0"`
+4. **Push to remote**: `git push origin main`
+5. **Build appstore package**: `make appstore`
+6. **Verify archive contents**: `tar -tzf build/artifacts/appstore/user_vo.tar.gz`
+   - Check for accidental temp/config files that shouldn't be included
+7. **Test the package locally**:
+   - Comment out apps-extra volume mount in `docker-compose.yml`
+   - Recreate container: `docker compose up -d --force-recreate stable31`
+   - Copy and extract: `cp build/artifacts/appstore/user_vo.tar.gz data/shared/`
+   - Install: `docker compose exec stable31 tar -xzf /shared/user_vo.tar.gz -C /var/www/html/apps/ && docker compose exec stable31 occ app:enable user_vo`
+   - Test functionality, then clean up and restore volume mount
+8. **Authenticate with GitHub** (if needed): `gh auth login`
+9. **Create GitHub release**: `gh release create v0.3.0`
+10. **Upload package**: `gh release upload v0.3.0 build/artifacts/appstore/user_vo.tar.gz`
+11. **Create signature**: `openssl dgst -sha512 -sign ~/.nextcloud/certificates/user_vo.key build/artifacts/appstore/user_vo.tar.gz | openssl base64`
+12. **Submit to Nextcloud appstore**: https://apps.nextcloud.com/developer/apps/releases/new
+    - Use the signature and GitHub release asset link
+
 ### Building Release Packages
 
 ```bash
@@ -312,13 +336,7 @@ Common log messages:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Latest:** Version 0.2.3-dev (unreleased)
-- User data synchronization (display name, email, profile photos)
-- Nightly background sync with status tracking
-- Manual sync for all users
-- Enhanced admin interface
-
-**Previous:** Version 0.2.0 (2025-10-04)
+**Current:** Version 0.2.2 (2025-10-04)
 - Fixed case sensitivity bug causing duplicate accounts
 - Added admin interface for configuration and duplicate management
 
