@@ -8,16 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Automatic user data synchronization from VereinOnline on every login
-  - Display name (always enabled)
-  - Email addresses (configurable, enabled by default)
-  - Profile photos (configurable, disabled by default)
-- Nightly background job for automatic sync (disabled by default, configurable via admin UI)
-- Admin interface for sync management
-  - Manual sync for all users
-  - Preview local and VO user data
-  - Sync status tracking (last run time, success/failed status, error messages, sync summary)
-- Database tracking for sync metadata (VO user ID, VO username, last sync timestamp)
+- Automatic user data synchronization (display name, email, profile photo) from VereinOnline on login
+- Optional nightly background sync job (configurable via admin UI)
+- Admin interface for manual sync and preview of local vs VO user data
+- Auto-population of VO user IDs on first sync after upgrade (no re-login needed)
 
 ## [0.2.2] - 2025-10-04
 

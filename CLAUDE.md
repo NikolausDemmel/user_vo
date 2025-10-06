@@ -212,6 +212,22 @@ This is **critical for PHP files** that might contain credentials (config files,
 - Falls back to `ConfigService` when no arguments provided
 - `checkCanonicalPassword()` performs actual authentication via API
 - `makeRequest()` handles HTTP communication with VereinOnline API
+- `fetchMembersMapForUsers()` implements fuzzy name matching for auto-populate:
+  - Extracts name parts from "Lastname, Firstname" format
+  - Scores each member based on substring/Levenshtein distance matches
+  - Prioritizes likely candidates and checks them first
+  - Stops early once all target users are found
+
+**AdminController.php:**
+- `syncFromVO()` performs the actual sync logic (manual sync endpoint)
+- Includes auto-populate logic for missing vo_user_ids
+- Returns JSON response with results and summary
+- Shared by both manual sync UI and nightly cron job
+
+**SyncUsersJob.php:**
+- Calls `AdminController::syncFromVO()` to reuse sync logic
+- Converts response format for consistency
+- Stores execution metadata in app config
 
 **Case Sensitivity Fix (v0.2.0):**
 - Usernames now normalized to lowercase on creation
@@ -235,6 +251,20 @@ This is **critical for PHP files** that might contain credentials (config files,
 
 **Important:** Manual changes to user data in Nextcloud will be overwritten on next sync.
 
+### Upgrade from v0.2.2 to v0.3.0
+
+When upgrading to v0.3.0, the first sync automatically populates VO user IDs for existing users:
+
+1. **Database migration** adds new columns (vo_user_id, vo_username, vo_group_ids, last_synced)
+2. **First sync** (manual or nightly) auto-populates missing vo_user_ids:
+   - Calls VereinOnline GetMembers API to get all members
+   - Uses fuzzy name matching to prioritize likely candidates
+   - Matches NC usernames to VO userlogin fields
+   - Typically finds all users in 3-4 API calls (instead of 100+)
+3. **Subsequent syncs** use populated vo_user_ids normally
+
+**No user action required** - users don't need to log in again after upgrade.
+
 ### Nightly Sync Configuration
 
 Background job settings (in admin interface):
@@ -247,7 +277,8 @@ Background job settings (in admin interface):
 
 The nightly sync is implemented as a Nextcloud background job (`lib/Cron/SyncUsersJob.php`). It:
 - Checks if sync is enabled before running
-- Uses reflection to access protected sync methods
+- Calls `AdminController::syncFromVO()` to reuse manual sync logic
+- Ensures consistency between manual and automatic syncs
 - Stores execution tracking in app config (no additional database tables)
 - Handles errors gracefully and logs detailed information
 
