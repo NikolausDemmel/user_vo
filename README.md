@@ -66,3 +66,7 @@ The admin interface provides control over user data synchronization:
 - View detailed sync results and status
 
 **Important:** VereinOnline is the source of truth. Manual changes to user data in Nextcloud will be overwritten on next sync.
+
+### Upgrading from v0.2.2
+
+When upgrading to v0.3.0, the first sync automatically populates VO user IDs for existing users. No user action is required - users don't need to log in again after the upgrade.
