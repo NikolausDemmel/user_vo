@@ -558,10 +558,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update summary
         if (data.last_summary && data.last_summary.total !== undefined) {
             const summary = data.last_summary;
-            summaryElement.textContent = t('user_vo', '{synced} users synced, {failed} failed', {
-                synced: summary.synced || 0,
-                failed: summary.failed || 0
-            });
+            const parts = [];
+            if (summary.synced > 0) parts.push(t('user_vo', '{synced} synced', {synced: summary.synced}));
+            if (summary.failed > 0) parts.push(t('user_vo', '{failed} failed', {failed: summary.failed}));
+            if (summary.skipped > 0) parts.push(t('user_vo', '{skipped} skipped', {skipped: summary.skipped}));
+            summaryElement.textContent = parts.length > 0 ? parts.join(', ') : t('user_vo', 'No users to sync');
         } else {
             summaryElement.textContent = t('user_vo', 'No sync data available');
         }

@@ -581,9 +581,8 @@ class AdminController extends Controller {
             foreach ($users as $userRow) {
                 $uid = $userRow['uid'];
 
-                // Skip users with !duplicate marker
+                // Skip users with !duplicate marker (don't count them at all)
                 if (str_ends_with($uid, '!duplicate')) {
-                    $skippedCount++;
                     continue;
                 }
 
@@ -732,7 +731,7 @@ class AdminController extends Controller {
             return new JSONResponse([
                 'success' => true,
                 'summary' => [
-                    'total' => count($users),
+                    'total' => $successCount + $failureCount + $skippedCount,
                     'success' => $successCount,
                     'failed' => $failureCount,
                     'skipped' => $skippedCount
