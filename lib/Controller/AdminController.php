@@ -320,9 +320,9 @@ class AdminController extends Controller {
     }
 
     /**
-     * View local user data (no API calls)
+     * Preview local user data (no API calls)
      */
-    public function viewLocalData() {
+    public function previewLocalUsers() {
         try {
             $results = [];
 
@@ -330,7 +330,8 @@ class AdminController extends Controller {
             $qb = $this->connection->getQueryBuilder();
             $qb->select('uid', 'vo_user_id', 'vo_username', 'displayname', 'last_synced')
                 ->from('user_vo')
-                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')));
+                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')))
+                ->orderBy('uid', 'ASC');
             $result = $qb->executeQuery();
             $users = $result->fetchAll();
             $result->closeCursor();
@@ -379,20 +380,35 @@ class AdminController extends Controller {
     }
 
     /**
-     * View user metadata without syncing (includes VO API calls)
+     * Preview user data from VO API without syncing
      */
-    public function viewUserMetadata() {
+    public function previewVOUsers() {
         try {
             $results = [];
 
             // Get all users from user_vo table
             $qb = $this->connection->getQueryBuilder();
-            $qb->select('uid', 'vo_user_id', 'vo_username', 'displayname', 'last_synced')
+            $qb->select('uid', 'vo_user_id', 'displayname', 'last_synced')
                 ->from('user_vo')
-                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')));
+                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')))
+                ->orderBy('uid', 'ASC');
             $result = $qb->executeQuery();
             $users = $result->fetchAll();
             $result->closeCursor();
+
+            // Get UserVOAuth instance to fetch data from VO
+            $configuration = $this->configService->loadConfiguration(maskPassword: false);
+            $auth = new UserVOAuth(
+                $configuration['api_url'],
+                $configuration['api_username'],
+                $configuration['api_password'],
+                $this->config
+            );
+
+            // Use reflection to access protected method
+            $reflectionClass = new \ReflectionClass($auth);
+            $fetchUserDataMethod = $reflectionClass->getMethod('fetchUserDataFromVO');
+            $fetchUserDataMethod->setAccessible(true);
 
             foreach ($users as $userRow) {
                 $uid = $userRow['uid'];
@@ -403,25 +419,82 @@ class AdminController extends Controller {
                 }
 
                 $voUserId = $userRow['vo_user_id'];
-                $voUsername = $userRow['vo_username'];
 
-                // Get user email
-                $user = \OC::$server->getUserManager()->get($uid);
-                $email = $user ? $user->getSystemEMailAddress() : '';
+                if (!$voUserId) {
+                    $results[] = [
+                        'uid' => $uid,
+                        'vo_username' => '',
+                        'vo_user_id' => '',
+                        'display_name' => '',
+                        'email' => '',
+                        'photo_status' => '',
+                        'last_synced' => $userRow['last_synced'] ?? null,
+                        'status' => 'skipped',
+                        'message' => 'No VO user ID in local database'
+                    ];
+                    continue;
+                }
 
-                // Check photo status - simplified, just show not applicable for batch view
-                $photoStatus = '-';
+                // Fetch data from VO API
+                $voUserData = $fetchUserDataMethod->invoke($auth, $voUserId);
+
+                if ($voUserData === null) {
+                    $results[] = [
+                        'uid' => $uid,
+                        'vo_username' => '',
+                        'vo_user_id' => $voUserId,
+                        'display_name' => '',
+                        'email' => '',
+                        'photo_status' => '',
+                        'last_synced' => $userRow['last_synced'] ?? null,
+                        'status' => 'failed',
+                        'message' => 'User not found in VO'
+                    ];
+                    continue;
+                }
+
+                if (isset($voUserData['_error'])) {
+                    $errorType = $voUserData['_error'];
+
+                    // Sanitize API error message - don't expose internal API details
+                    $message = $errorType === 'api_error' ? 'VO API error' :
+                              ($errorType === 'no_login' ? 'No login credentials in VO' : 'Error fetching user data');
+
+                    $results[] = [
+                        'uid' => $uid,
+                        'vo_username' => '',
+                        'vo_user_id' => $voUserId,
+                        'display_name' => '',
+                        'email' => '',
+                        'photo_status' => '',
+                        'last_synced' => $userRow['last_synced'] ?? null,
+                        'status' => 'failed',
+                        'message' => $message
+                    ];
+                    continue;
+                }
+
+                // Get photo status
+                $photoStatus = '';
+                if (!empty($voUserData['foto']) && $voUserData['foto'] !== 'anonym.gif') {
+                    $photoStatus = 'Available';
+                } else {
+                    $photoStatus = 'None';
+                }
+
+                // Check if user is deleted
+                $isDeleted = $voUserData['_deleted'] ?? false;
 
                 $results[] = [
                     'uid' => $uid,
-                    'vo_username' => $voUsername ?: '-',
-                    'vo_user_id' => $voUserId ?: '-',
-                    'display_name' => $userRow['displayname'] ?: '-',
-                    'email' => $email ?: '-',
+                    'vo_username' => $voUserData['username'] ?? '',
+                    'vo_user_id' => $voUserId,
+                    'display_name' => trim($voUserData['firstname'] . ' ' . $voUserData['lastname']),
+                    'email' => $voUserData['email'] ?? '',
                     'photo_status' => $photoStatus,
-                    'last_synced' => $userRow['last_synced'] ?: '-',
-                    'status' => 'info',
-                    'message' => $voUserId ? 'Ready to sync' : 'No VO user ID'
+                    'last_synced' => $userRow['last_synced'] ?? null,
+                    'status' => $isDeleted ? 'deleted' : 'info',
+                    'message' => $isDeleted ? 'User marked as deleted in VO' : 'Ready to sync'
                 ];
             }
 
@@ -441,9 +514,9 @@ class AdminController extends Controller {
     }
 
     /**
-     * Manually sync all VO users
+     * Sync all users from VO API
      */
-    public function syncAllUsers() {
+    public function syncFromVO() {
         try {
             $results = [];
             $successCount = 0;
@@ -454,7 +527,8 @@ class AdminController extends Controller {
             $qb = $this->connection->getQueryBuilder();
             $qb->select('uid', 'vo_user_id')
                 ->from('user_vo')
-                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')));
+                ->where($qb->expr()->eq('backend', $qb->createNamedParameter('user_vo')))
+                ->orderBy('uid', 'ASC');
             $result = $qb->executeQuery();
             $users = $result->fetchAll();
             $result->closeCursor();
@@ -512,18 +586,44 @@ class AdminController extends Controller {
                         'photo_status' => '',
                         'last_synced' => '',
                         'status' => 'failed',
-                        'message' => 'Could not fetch data from VO'
+                        'message' => 'User not found in VO'
                     ];
                     $failureCount++;
                     continue;
                 }
 
-                // Sync user data using reflection
+                // Check for specific error cases
+                if (isset($voUserData['_error'])) {
+                    $errorType = $voUserData['_error'];
+
+                    // Sanitize API error message - don't expose internal API details
+                    $message = $errorType === 'api_error' ? 'VO API error' :
+                              ($errorType === 'no_login' ? 'No login credentials in VO' : 'Error fetching user data');
+
+                    $results[] = [
+                        'uid' => $uid,
+                        'vo_username' => '',
+                        'vo_user_id' => $voUserId,
+                        'display_name' => '',
+                        'email' => '',
+                        'photo_status' => '',
+                        'last_synced' => '',
+                        'status' => 'failed',
+                        'message' => $message
+                    ];
+                    $failureCount++;
+                    continue;
+                }
+
+                // Check if user is deleted in VO
+                $isDeleted = $voUserData['_deleted'] ?? false;
+
+                // Sync user data using reflection (even for deleted users to update metadata)
                 $syncMethod = $reflection->getMethod('syncUserData');
                 $syncMethod->setAccessible(true);
                 $success = $syncMethod->invoke($auth, $uid, $voUserData);
 
-                if ($success) {
+                if ($success || $isDeleted) {
                     // Get last_synced from database
                     $qb = $this->connection->getQueryBuilder();
                     $qb->select('vo_username', 'displayname', 'last_synced')
@@ -542,7 +642,7 @@ class AdminController extends Controller {
                     $syncPhoto = $this->config->getAppValue('user_vo', 'sync_photo', 'false') === 'true';
                     $hasPhoto = !empty($voUserData['foto']) && $voUserData['foto'] !== 'anonym.gif';
 
-                    if ($syncPhoto && $hasPhoto) {
+                    if ($syncPhoto && $hasPhoto && !$isDeleted) {
                         $photoStatus = 'Synced';
                     } elseif ($hasPhoto) {
                         $photoStatus = 'Available (not synced)';
@@ -550,18 +650,33 @@ class AdminController extends Controller {
                         $photoStatus = 'No photo in VO';
                     }
 
-                    $results[] = [
-                        'uid' => $uid,
-                        'vo_username' => $userData['vo_username'] ?? '',
-                        'vo_user_id' => $voUserId,
-                        'display_name' => $userData['displayname'] ?? '',
-                        'email' => $email,
-                        'photo_status' => $photoStatus,
-                        'last_synced' => $userData['last_synced'] ?? null,
-                        'status' => 'success',
-                        'message' => 'Synced successfully'
-                    ];
-                    $successCount++;
+                    if ($isDeleted) {
+                        $results[] = [
+                            'uid' => $uid,
+                            'vo_username' => $voUserData['username'] ?? '',
+                            'vo_user_id' => $voUserId,
+                            'display_name' => trim($voUserData['firstname'] . ' ' . $voUserData['lastname']),
+                            'email' => $voUserData['email'] ?? '',
+                            'photo_status' => $photoStatus,
+                            'last_synced' => $userData['last_synced'] ?? null,
+                            'status' => 'deleted',
+                            'message' => 'User marked as deleted in VO'
+                        ];
+                        $failureCount++; // Count as failure for summary purposes
+                    } else {
+                        $results[] = [
+                            'uid' => $uid,
+                            'vo_username' => $userData['vo_username'] ?? '',
+                            'vo_user_id' => $voUserId,
+                            'display_name' => $userData['displayname'] ?? '',
+                            'email' => $email,
+                            'photo_status' => $photoStatus,
+                            'last_synced' => $userData['last_synced'] ?? null,
+                            'status' => 'success',
+                            'message' => 'Synced successfully'
+                        ];
+                        $successCount++;
+                    }
                 } else {
                     $results[] = [
                         'uid' => $uid,

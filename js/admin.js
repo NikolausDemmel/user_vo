@@ -470,6 +470,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     // View local data (fast, no API calls)
     const viewLocalDataButton = document.getElementById('view-local-data');
     if (viewLocalDataButton) {
@@ -479,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
             syncAllUsersStatus.className = 'sync-status syncing';
             userSyncResults.style.display = 'none';
 
-            fetch(OC.generateUrl('/apps/user_vo/admin/view-local-data'), {
+            fetch(OC.generateUrl('/apps/user_vo/admin/preview-local-users'), {
                 method: 'GET',
                 headers: {
                     'requesttoken': OC.requestToken
@@ -506,17 +513,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         const row = document.createElement('tr');
                         row.className = result.status;
 
-                        const statusIcon = '○';
+                        const statusIcon = result.status === 'info' ? 'ℹ' :
+                                         result.status === 'skipped' ? '○' : '○';
 
                         row.innerHTML = `
-                            <td>${result.uid}</td>
-                            <td>${result.vo_username || '-'}</td>
-                            <td>${result.vo_user_id || '-'}</td>
-                            <td>${result.display_name || '-'}</td>
-                            <td>${result.email || '-'}</td>
-                            <td>${result.photo_status || '-'}</td>
-                            <td>${result.last_synced || '-'}</td>
-                            <td><span class="status-${result.status}">${statusIcon} ${result.message}</span></td>
+                            <td>${escapeHtml(result.uid)}</td>
+                            <td>${escapeHtml(result.vo_username || '-')}</td>
+                            <td>${escapeHtml(result.vo_user_id || '-')}</td>
+                            <td>${escapeHtml(result.display_name || '-')}</td>
+                            <td>${escapeHtml(result.email || '-')}</td>
+                            <td>${escapeHtml(result.photo_status || '-')}</td>
+                            <td>${escapeHtml(result.last_synced || '-')}</td>
+                            <td><span class="status-${result.status}">${statusIcon} ${escapeHtml(result.message)}</span></td>
                         `;
                         userSyncList.appendChild(row);
                     });
@@ -546,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
             syncAllUsersStatus.className = 'sync-status syncing';
             userSyncResults.style.display = 'none';
 
-            fetch(OC.generateUrl('/apps/user_vo/admin/view-user-metadata'), {
+            fetch(OC.generateUrl('/apps/user_vo/admin/preview-vo-users'), {
                 method: 'GET',
                 headers: {
                     'requesttoken': OC.requestToken
@@ -573,17 +581,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         const row = document.createElement('tr');
                         row.className = result.status;
 
-                        const statusIcon = '○';
+                        const statusIcon = result.status === 'info' ? 'ℹ' :
+                                         result.status === 'deleted' ? '⚠' :
+                                         result.status === 'failed' ? '✗' :
+                                         result.status === 'skipped' ? '○' : '○';
 
                         row.innerHTML = `
-                            <td>${result.uid}</td>
-                            <td>${result.vo_username || '-'}</td>
-                            <td>${result.vo_user_id || '-'}</td>
-                            <td>${result.display_name || '-'}</td>
-                            <td>${result.email || '-'}</td>
-                            <td>${result.photo_status || '-'}</td>
-                            <td>${result.last_synced || '-'}</td>
-                            <td><span class="status-${result.status}">${statusIcon} ${result.message}</span></td>
+                            <td>${escapeHtml(result.uid)}</td>
+                            <td>${escapeHtml(result.vo_username || '-')}</td>
+                            <td>${escapeHtml(result.vo_user_id || '-')}</td>
+                            <td>${escapeHtml(result.display_name || '-')}</td>
+                            <td>${escapeHtml(result.email || '-')}</td>
+                            <td>${escapeHtml(result.photo_status || '-')}</td>
+                            <td>${escapeHtml(result.last_synced || '-')}</td>
+                            <td><span class="status-${result.status}">${statusIcon} ${escapeHtml(result.message)}</span></td>
                         `;
                         userSyncList.appendChild(row);
                     });
@@ -610,7 +621,7 @@ document.addEventListener('DOMContentLoaded', function() {
             syncAllUsersStatus.className = 'sync-status syncing';
             userSyncResults.style.display = 'none';
 
-            fetch(OC.generateUrl('/apps/user_vo/admin/sync-all-users'), {
+            fetch(OC.generateUrl('/apps/user_vo/admin/sync-from-vo'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -643,17 +654,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         row.className = result.status;
 
                         const statusIcon = result.status === 'success' ? '✓' :
-                                         result.status === 'failed' ? '✗' : '○';
+                                         result.status === 'deleted' ? '⚠' :
+                                         result.status === 'failed' ? '✗' :
+                                         result.status === 'skipped' ? '○' : '○';
 
                         row.innerHTML = `
-                            <td>${result.uid}</td>
-                            <td>${result.vo_username || '-'}</td>
-                            <td>${result.vo_user_id || '-'}</td>
-                            <td>${result.display_name || '-'}</td>
-                            <td>${result.email || '-'}</td>
-                            <td>${result.photo_status || '-'}</td>
-                            <td>${result.last_synced || '-'}</td>
-                            <td><span class="status-${result.status}">${statusIcon} ${result.message}</span></td>
+                            <td>${escapeHtml(result.uid)}</td>
+                            <td>${escapeHtml(result.vo_username || '-')}</td>
+                            <td>${escapeHtml(result.vo_user_id || '-')}</td>
+                            <td>${escapeHtml(result.display_name || '-')}</td>
+                            <td>${escapeHtml(result.email || '-')}</td>
+                            <td>${escapeHtml(result.photo_status || '-')}</td>
+                            <td>${escapeHtml(result.last_synced || '-')}</td>
+                            <td><span class="status-${result.status}">${statusIcon} ${escapeHtml(result.message)}</span></td>
                         `;
                         userSyncList.appendChild(row);
                     });

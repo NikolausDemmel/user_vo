@@ -777,20 +777,37 @@
     background: #fff9e6;
 }
 
+.vo-users-table tr.deleted {
+    background: #fff3cd;
+}
+
+.vo-users-table tr.info {
+    background: #f0f9ff;
+}
+
 .status-success {
     color: #0f8907;
+    font-weight: 500;
 }
 
 .status-failed {
     color: #e9322d;
+    font-weight: 500;
 }
 
 .status-skipped {
     color: #9f6000;
+    font-weight: 500;
+}
+
+.status-deleted {
+    color: #ff8c00;
+    font-weight: 500;
 }
 
 .status-info {
     color: #0082c9;
+    font-weight: 500;
 }
 
 #user-sync-summary ul {
@@ -863,6 +880,18 @@
     .vo-users-table tr.skipped {
         background: #3a331e;
     }
+
+    .vo-users-table tr.deleted {
+        background: #3a331e;
+    }
+
+    .vo-users-table tr.info {
+        background: #1e3a5f;
+    }
+
+    .status-deleted {
+        color: #fbbf24;
+    }
 }
 
 /* Dark theme - data attribute version */
@@ -920,4 +949,16 @@
 
 [data-theme-dark] .vo-users-table tr.skipped {
     background: #3a331e;
+}
+
+[data-theme-dark] .vo-users-table tr.deleted {
+    background: #3a331e;
+}
+
+[data-theme-dark] .vo-users-table tr.info {
+    background: #1e3a5f;
+}
+
+[data-theme-dark] .status-deleted {
+    color: #fbbf24;
 }

@@ -188,7 +188,7 @@ class UserVOAuth extends Base {
      * Fetch extended user data from VO API
      *
      * @param string $voUserId VO user ID (from VerifyLogin result)
-     * @return array|null User data or null on error
+     * @return array|null User data or null on error. Returns array with '_error' key on specific errors.
      */
     protected function fetchUserDataFromVO(string $voUserId): ?array {
         $token = 'A/' . $this->username . '/' . md5($this->password);
@@ -202,21 +202,21 @@ class UserVOAuth extends Base {
                 'vo_user_id' => $voUserId,
                 'error' => $response['error'] ?? 'Unknown error'
             ]);
-            return null;
+            return ['_error' => 'api_error', '_message' => $response['error'] ?? 'Unknown error'];
+        }
+
+        // Check if user is deleted in VO - still return data but mark as deleted
+        $isDeleted = !empty($response['geloescht']) && $response['geloescht'] !== "0";
+        if ($isDeleted) {
+            logger('user_vo')->info("User is deleted in VO", ['vo_user_id' => $voUserId]);
         }
 
         // CRITICAL: Filter out users without login credentials
         if (empty($response['userlogin'])) {
-            logger('user_vo')->debug("Skipping user without VO login credentials", [
+            logger('user_vo')->debug("User without VO login credentials", [
                 'vo_user_id' => $voUserId
             ]);
-            return null;
-        }
-
-        // Check if user is deleted in VO
-        if (!empty($response['geloescht']) && $response['geloescht'] !== "0") {
-            logger('user_vo')->info("User is deleted in VO", ['vo_user_id' => $voUserId]);
-            return null;
+            return ['_error' => 'no_login', '_message' => 'No login credentials in VO'];
         }
 
         // Return normalized structure with actual VO field names
@@ -228,6 +228,7 @@ class UserVOAuth extends Base {
             'email' => $response['p_email'] ?? '',      // Personal email
             'group_ids' => $response['gruppenids'] ?? '',     // Comma-separated group IDs
             'foto' => $response['foto'] ?? '',          // Photo filename
+            '_deleted' => $isDeleted,                   // User marked as deleted in VO
         ];
     }
 
