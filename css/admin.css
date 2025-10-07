@@ -872,6 +872,15 @@
         color: #e3f2fd;
     }
 
+    .vo-notice a {
+        color: #8ec5ff;
+        text-decoration: underline;
+    }
+
+    .vo-notice a:hover {
+        color: #b8daff;
+    }
+
     .vo-users-table {
         background: #23272f;
     }
@@ -959,6 +968,15 @@
     background: #1e3a5f;
     border-left-color: #4da3ff;
     color: #e3f2fd;
+}
+
+[data-theme-dark] .vo-notice a {
+    color: #8ec5ff;
+    text-decoration: underline;
+}
+
+[data-theme-dark] .vo-notice a:hover {
+    color: #b8daff;
 }
 
 [data-theme-dark] .vo-users-table {
