@@ -1138,4 +1138,305 @@ class AdminController extends Controller {
         return $oldestTime;
     }
 
+    /**
+     * Search for VO users who could log in and check their NC account status
+     *
+     * @param string $searchTerm Partial name to search (empty = all users, with warning)
+     * @return JSONResponse
+     */
+    public function searchVOUsers() {
+        try {
+            $searchTerm = $this->request->getParam('search_term', '');
+            $this->logger->info('[searchVOUsers] Starting search', ['app' => 'user_vo', 'search_term' => $searchTerm]);
+
+            // Get UserVOAuth instance to access API methods
+            $configuration = $this->configService->loadConfiguration(maskPassword: false);
+            $backend = new UserVOAuth(
+                $configuration['api_url'],
+                $configuration['api_username'],
+                $configuration['api_password']
+            );
+
+            // Use reflection to access protected fetchAllMembers() method
+            $reflection = new \ReflectionClass($backend);
+            $fetchAllMembersMethod = $reflection->getMethod('fetchAllMembers');
+            $fetchAllMembersMethod->setAccessible(true);
+
+            // Fetch all VO members
+            $allMembers = $fetchAllMembersMethod->invoke($backend);
+
+            if (!$allMembers) {
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => 'Failed to fetch members from VereinOnline'
+                ], 500);
+            }
+
+            $results = [];
+            $searchLower = mb_strtolower(trim($searchTerm), 'UTF-8');
+            $userManager = \OC::$server->getUserManager();
+
+            // Filter and check each member
+            foreach ($allMembers as $member) {
+                $memberId = $member['id'];
+
+                // Apply search filter if provided
+                // GetMembers returns 'name' field like "Lastname, Firstname"
+                // Support flexible search: "Firstname Lastname" should match "Lastname, Firstname"
+                if (!empty($searchTerm)) {
+                    if (empty($member['name'])) {
+                        continue; // Skip if no name
+                    }
+
+                    $nameLower = mb_strtolower($member['name'], 'UTF-8');
+
+                    // Split search term into parts and check if all parts exist in name
+                    // Supports "Niko Demmel" or "Demmel Niko" matching "Demmel, Nikolaus"
+                    $searchParts = preg_split('/\s+/', $searchLower, -1, PREG_SPLIT_NO_EMPTY);
+                    $allPartsMatch = true;
+
+                    foreach ($searchParts as $part) {
+                        if (mb_strpos($nameLower, $part) === false) {
+                            $allPartsMatch = false;
+                            break;
+                        }
+                    }
+
+                    if (!$allPartsMatch) {
+                        continue; // Skip non-matching
+                    }
+                }
+
+                // Fetch full member details to check userlogin and deleted status
+                $fetchUserDataMethod = $reflection->getMethod('fetchUserDataFromVO');
+                $fetchUserDataMethod->setAccessible(true);
+                $memberData = $fetchUserDataMethod->invoke($backend, $memberId);
+
+                if (!$memberData) {
+                    continue; // Skip if can't fetch details
+                }
+
+                // Filter: Must have username and not be deleted
+                // Note: fetchUserDataFromVO() returns normalized field 'username', not 'userlogin'
+                if (empty($memberData['username'])) {
+                    continue; // Skip passive members without login
+                }
+
+                if (!empty($memberData['_deleted']) && $memberData['_deleted'] !== false) {
+                    continue; // Skip deleted users
+                }
+
+                // Check if NC account exists
+                $voUsername = $memberData['username'];
+                $ncUsername = strtolower($voUsername); // NC usernames are lowercase
+                $ncUser = $userManager->get($ncUsername);
+
+                $results[] = [
+                    'vo_user_id' => $memberId,
+                    'vo_username' => $voUsername,
+                    'vo_name' => $member['name'] ?? '', // Name from GetMembers (e.g., "Lastname, Firstname")
+                    'display_name' => trim($memberData['firstname'] . ' ' . $memberData['lastname']), // Normalized fields
+                    'email' => $memberData['email'] ?? '', // Normalized field
+                    'nc_account_exists' => ($ncUser !== null),
+                    'nc_username' => $ncUser ? $ncUser->getUID() : null,
+                ];
+            }
+
+            return new JSONResponse([
+                'success' => true,
+                'users' => $results,
+                'count' => count($results),
+                'search_term' => $searchTerm,
+                'is_all_users' => empty($searchTerm)
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to search VO users', [
+                'app' => 'user_vo',
+                'error' => $e->getMessage()
+            ]);
+
+            return new JSONResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create a Nextcloud account for a VO user
+     *
+     * @return JSONResponse
+     */
+    public function createAccountFromVO() {
+        try {
+            $voUserId = $this->request->getParam('vo_user_id', '');
+
+            if (empty($voUserId)) {
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => 'VO user ID is required'
+                ], 400);
+            }
+
+            // Get UserVOAuth instance to access API methods
+            $configuration = $this->configService->loadConfiguration(maskPassword: false);
+            $backend = new UserVOAuth(
+                $configuration['api_url'],
+                $configuration['api_username'],
+                $configuration['api_password']
+            );
+
+            // Use reflection to access protected fetchUserDataFromVO() method
+            $reflection = new \ReflectionClass($backend);
+            $fetchUserDataMethod = $reflection->getMethod('fetchUserDataFromVO');
+            $fetchUserDataMethod->setAccessible(true);
+
+            // Fetch user data from VO
+            $memberData = $fetchUserDataMethod->invoke($backend, $voUserId);
+
+            if (!$memberData) {
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => 'Failed to fetch user data from VereinOnline'
+                ], 500);
+            }
+
+            // Validate user has login credentials (normalized field name)
+            if (empty($memberData['username'])) {
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => 'User does not have login credentials in VereinOnline'
+                ], 400);
+            }
+
+            // Check if deleted (normalized field name)
+            if (!empty($memberData['_deleted']) && $memberData['_deleted'] === true) {
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => 'User is marked as deleted in VereinOnline'
+                ], 400);
+            }
+
+            $voUsername = $memberData['username'];  // Normalized field
+            $ncUsername = strtolower($voUsername);
+
+            // Check if account already exists
+            $userManager = \OC::$server->getUserManager();
+            if ($userManager->get($ncUsername)) {
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => "Account '$ncUsername' already exists"
+                ], 409);
+            }
+
+            // Create account using existing storeUser logic
+            $backend->storeUser($ncUsername);
+
+            // Sync user data using reflection (already normalized from fetchUserDataFromVO)
+            $reflection = new \ReflectionClass($backend);
+            $syncMethod = $reflection->getMethod('syncUserData');
+            $syncMethod->setAccessible(true);
+            $syncMethod->invoke($backend, $ncUsername, $memberData);
+
+            $this->logger->info("Pre-provisioned NC account for VO user", [
+                'app' => 'user_vo',
+                'nc_username' => $ncUsername,
+                'vo_user_id' => $voUserId
+            ]);
+
+            return new JSONResponse([
+                'success' => true,
+                'nc_username' => $ncUsername,
+                'message' => "Account '$ncUsername' created successfully"
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to create account from VO', [
+                'app' => 'user_vo',
+                'vo_user_id' => $voUserId ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+
+            return new JSONResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk create accounts for multiple VO users
+     *
+     * @return JSONResponse
+     */
+    public function bulkCreateAccountsFromVO() {
+        try {
+            $voUserIds = $this->request->getParam('vo_user_ids', []);
+
+            if (empty($voUserIds) || !is_array($voUserIds)) {
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => 'No user IDs provided'
+                ], 400);
+            }
+
+            $results = [
+                'created' => [],
+                'skipped' => [],
+                'errors' => []
+            ];
+
+            foreach ($voUserIds as $voUserId) {
+                // Create a temporary request object with the vo_user_id parameter
+                $originalParams = $this->request->getParams();
+
+                // Manually set the parameter for this iteration
+                $_POST['vo_user_id'] = $voUserId;
+
+                $response = $this->createAccountFromVO();
+                $data = $response->getData();
+
+                if ($data['success']) {
+                    $results['created'][] = [
+                        'vo_user_id' => $voUserId,
+                        'nc_username' => $data['nc_username']
+                    ];
+                } elseif ($response->getStatus() === 409) {
+                    $results['skipped'][] = [
+                        'vo_user_id' => $voUserId,
+                        'reason' => 'Already exists'
+                    ];
+                } else {
+                    $results['errors'][] = [
+                        'vo_user_id' => $voUserId,
+                        'error' => $data['error']
+                    ];
+                }
+            }
+
+            return new JSONResponse([
+                'success' => true,
+                'summary' => [
+                    'total' => count($voUserIds),
+                    'created' => count($results['created']),
+                    'skipped' => count($results['skipped']),
+                    'errors' => count($results['errors'])
+                ],
+                'results' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to bulk create accounts', [
+                'app' => 'user_vo',
+                'error' => $e->getMessage()
+            ]);
+
+            return new JSONResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

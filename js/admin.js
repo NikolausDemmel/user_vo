@@ -790,4 +790,209 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Pre-provision user accounts
+    const searchVOUsersBtn = document.getElementById('search-vo-users-btn');
+    if (searchVOUsersBtn) {
+        searchVOUsersBtn.addEventListener('click', function() {
+            const searchTerm = document.getElementById('vo-user-search').value.trim();
+            const searchStatus = document.getElementById('search-vo-users-status');
+            const searchWarning = document.getElementById('vo-user-search-warning');
+            const searchResults = document.getElementById('vo-user-search-results');
+
+            // Show warning if searching all users
+            if (searchTerm === '') {
+                searchWarning.style.display = 'block';
+            } else {
+                searchWarning.style.display = 'none';
+            }
+
+            searchVOUsersBtn.disabled = true;
+            searchStatus.textContent = t('user_vo', 'Searching...');
+            searchStatus.className = 'sync-status';
+
+            const url = OC.generateUrl('/apps/user_vo/admin/search-vo-users') +
+                        '?search_term=' + encodeURIComponent(searchTerm);
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'requesttoken': OC.requestToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                searchVOUsersBtn.disabled = false;
+                if (data.success) {
+                    displayVOUserSearchResults(data);
+                    searchStatus.textContent = t('user_vo', 'Found {count} users', { count: data.count });
+                    searchStatus.className = 'sync-status success';
+                    searchResults.style.display = 'block';
+                } else {
+                    searchStatus.textContent = t('user_vo', 'Error:') + ' ' + (data.error || 'Unknown error');
+                    searchStatus.className = 'sync-status error';
+                }
+            })
+            .catch(error => {
+                searchVOUsersBtn.disabled = false;
+                searchStatus.textContent = t('user_vo', 'Error:') + ' ' + error;
+                searchStatus.className = 'sync-status error';
+            });
+        });
+    }
+
+    function displayVOUserSearchResults(response) {
+        const summary = document.getElementById('vo-user-search-summary');
+        const list = document.getElementById('vo-user-search-list');
+
+        list.innerHTML = '';
+
+        // Summary
+        let summaryText = t('user_vo', 'Found {count} users', { count: response.count });
+        if (response.is_all_users) {
+            summaryText += ' ' + t('user_vo', '(showing all VO users with login credentials)');
+        } else {
+            summaryText += ' ' + t('user_vo', 'matching "{term}"', { term: response.search_term });
+        }
+        summary.innerHTML = `<p>${summaryText}</p>`;
+
+        // Results table
+        response.users.forEach(user => {
+            const row = document.createElement('tr');
+
+            const statusBadge = user.nc_account_exists
+                ? `<span class="vo-badge vo-badge-success">✓ ${escapeHtml(user.nc_username)}</span>`
+                : '<span class="vo-badge vo-badge-warning">' + t('user_vo', 'Not created') + '</span>';
+
+            const actionButton = user.nc_account_exists
+                ? '<span class="vo-text-muted">—</span>'
+                : `<button class="button create-account-btn" data-vo-user-id="${escapeHtml(user.vo_user_id)}">` +
+                  t('user_vo', 'Create Account') + '</button>';
+
+            const checkbox = user.nc_account_exists
+                ? '<span class="vo-text-muted">—</span>'
+                : `<input type="checkbox" class="vo-user-checkbox" data-vo-user-id="${escapeHtml(user.vo_user_id)}" />`;
+
+            row.innerHTML = `
+                <td>${checkbox}</td>
+                <td>${escapeHtml(user.vo_name || '—')}</td>
+                <td>${escapeHtml(user.vo_username)}</td>
+                <td>${escapeHtml(user.display_name)}</td>
+                <td>${escapeHtml(user.email || '—')}</td>
+                <td>${escapeHtml(user.vo_user_id)}</td>
+                <td>${statusBadge}</td>
+                <td>${actionButton}</td>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    // Create single account
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('create-account-btn')) {
+            const voUserId = e.target.getAttribute('data-vo-user-id');
+            const button = e.target;
+
+            button.disabled = true;
+            button.textContent = t('user_vo', 'Creating...');
+
+            fetch(OC.generateUrl('/apps/user_vo/admin/create-account-from-vo'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'requesttoken': OC.requestToken
+                },
+                body: JSON.stringify({ vo_user_id: voUserId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    OC.Notification.showTemporary(
+                        t('user_vo', "Account '{username}' created successfully", { username: data.nc_username })
+                    );
+                    // Refresh search results
+                    document.getElementById('search-vo-users-btn').click();
+                } else {
+                    OC.Notification.showTemporary(t('user_vo', 'Error:') + ' ' + data.error, { type: 'error' });
+                    button.disabled = false;
+                    button.textContent = t('user_vo', 'Create Account');
+                }
+            })
+            .catch(error => {
+                OC.Notification.showTemporary(t('user_vo', 'Error:') + ' ' + error, { type: 'error' });
+                button.disabled = false;
+                button.textContent = t('user_vo', 'Create Account');
+            });
+        }
+    });
+
+    // Bulk create accounts
+    const bulkCreateBtn = document.getElementById('bulk-create-accounts-btn');
+    if (bulkCreateBtn) {
+        bulkCreateBtn.addEventListener('click', function() {
+            const selectedUserIds = [];
+            document.querySelectorAll('.vo-user-checkbox:checked').forEach(checkbox => {
+                selectedUserIds.push(checkbox.getAttribute('data-vo-user-id'));
+            });
+
+            if (selectedUserIds.length === 0) {
+                OC.Notification.showTemporary(t('user_vo', 'Please select at least one user'), { type: 'error' });
+                return;
+            }
+
+            if (!confirm(t('user_vo', 'Create {count} account(s)?', { count: selectedUserIds.length }))) {
+                return;
+            }
+
+            const bulkCreateStatus = document.getElementById('bulk-create-status');
+            bulkCreateBtn.disabled = true;
+            bulkCreateStatus.textContent = t('user_vo', 'Creating accounts...');
+            bulkCreateStatus.className = 'sync-status';
+
+            fetch(OC.generateUrl('/apps/user_vo/admin/bulk-create-accounts-from-vo'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'requesttoken': OC.requestToken
+                },
+                body: JSON.stringify({ vo_user_ids: selectedUserIds })
+            })
+            .then(response => response.json())
+            .then(data => {
+                bulkCreateBtn.disabled = false;
+                if (data.success) {
+                    const summary = data.summary;
+                    const message = t('user_vo', 'Created: {created}, Skipped: {skipped}, Errors: {errors}', {
+                        created: summary.created,
+                        skipped: summary.skipped,
+                        errors: summary.errors
+                    });
+                    bulkCreateStatus.textContent = message;
+                    bulkCreateStatus.className = 'sync-status success';
+                    OC.Notification.showTemporary(t('user_vo', 'Bulk account creation completed'));
+
+                    // Refresh search results
+                    setTimeout(() => document.getElementById('search-vo-users-btn').click(), 1000);
+                } else {
+                    bulkCreateStatus.textContent = t('user_vo', 'Error:') + ' ' + (data.error || 'Unknown error');
+                    bulkCreateStatus.className = 'sync-status error';
+                }
+            })
+            .catch(error => {
+                bulkCreateBtn.disabled = false;
+                bulkCreateStatus.textContent = t('user_vo', 'Error:') + ' ' + error;
+                bulkCreateStatus.className = 'sync-status error';
+            });
+        });
+    }
+
+    // Select all checkbox
+    const selectAllCheckbox = document.getElementById('select-all-vo-users');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            document.querySelectorAll('.vo-user-checkbox').forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        });
+    }
 });

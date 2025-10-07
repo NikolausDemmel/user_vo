@@ -258,6 +258,56 @@ style('user_vo', 'admin');
         </div>
     </div>
 
+    <!-- Pre-provision User Accounts Section -->
+    <div class="user-sync-section">
+        <h3><?php p($l->t('Pre-provision User Accounts')); ?></h3>
+
+        <div class="vo-notice">
+            <span class="icon icon-info"></span>
+            <?php p($l->t('Search for VereinOnline users and create their Nextcloud accounts before their first login. Only users with VO login credentials will be shown.')); ?>
+        </div>
+
+        <h4><?php p($l->t('Search Users')); ?></h4>
+        <p>
+            <input type="text" id="vo-user-search" placeholder="<?php p($l->t('Enter name to search...')); ?>"
+                   style="width: 300px;" />
+            <button id="search-vo-users-btn" class="button"><?php p($l->t('Search')); ?></button>
+            <span id="search-vo-users-status"></span>
+        </p>
+
+        <div id="vo-user-search-warning" class="vo-warning" style="display:none;">
+            ⚠️ <?php p($l->t('Searching all users may take a long time depending on the number of members in VereinOnline. Consider entering a name to narrow down the results.')); ?>
+        </div>
+
+        <div id="vo-user-search-results" style="display:none; margin-top: 20px;">
+            <h4><?php p($l->t('Search Results')); ?></h4>
+            <div id="vo-user-search-summary"></div>
+
+            <table class="vo-users-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="select-all-vo-users" /></th>
+                        <th><?php p($l->t('Name (VO)')); ?></th>
+                        <th><?php p($l->t('VO Username')); ?></th>
+                        <th><?php p($l->t('Display Name')); ?></th>
+                        <th><?php p($l->t('Email')); ?></th>
+                        <th><?php p($l->t('VO User ID')); ?></th>
+                        <th><?php p($l->t('NC Account Status')); ?></th>
+                        <th><?php p($l->t('Actions')); ?></th>
+                    </tr>
+                </thead>
+                <tbody id="vo-user-search-list"></tbody>
+            </table>
+
+            <div class="vo-bulk-actions" style="margin-top: 15px;">
+                <button id="bulk-create-accounts-btn" class="button-primary">
+                    <?php p($l->t('Create Selected Accounts')); ?>
+                </button>
+                <span id="bulk-create-status"></span>
+            </div>
+        </div>
+    </div>
+
     <!-- User Account Management Section -->
     <div class="duplicate-accounts-section">
         <h3><?php p($l->t('User Account Management')); ?></h3>

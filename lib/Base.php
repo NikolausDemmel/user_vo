@@ -264,7 +264,7 @@ abstract class Base extends \OC\User\Backend {
 	 *
 	 * @return void
 	 */
-	protected function storeUser($uid, $groups = []) {
+	public function storeUser($uid, $groups = []) {
 		// Check for !duplicate marker - this should never happen for any user
 		if (str_ends_with($uid, '!duplicate')) {
 			error_log("ERROR: storeUser() called with !duplicate marker '$uid'. This indicates a serious bug in the login flow. Stripping marker.");

@@ -242,18 +242,32 @@ class UserVOAuth extends Base {
      * @param array $targetUsernames Array of NC usernames to find (lowercase)
      * @return array Map of lowercase NC username => ['vo_user_id' => ..., 'vo_username' => ...]
      */
-    protected function fetchMembersMapForUsers(array $targetUsernames): array {
+    /**
+     * Fetch all members from VereinOnline API
+     *
+     * @return array|null Array of members or null on failure
+     */
+    protected function fetchAllMembers(): ?array {
         $token = 'A/' . $this->username . '/' . md5($this->password);
-
-        // First, get list of all member IDs
         $listUrl = $this->apiUrl . "/?api=GetMembers";
         $listResponse = $this->makeRequest($listUrl, [], $token);
 
         if (!$listResponse || !is_array($listResponse)) {
             logger('user_vo')->error("Failed to fetch members list from VO");
+            return null;
+        }
+
+        return $listResponse;
+    }
+
+    protected function fetchMembersMapForUsers(array $targetUsernames): array {
+        $listResponse = $this->fetchAllMembers();
+
+        if ($listResponse === null) {
             return [];
         }
 
+        $token = 'A/' . $this->username . '/' . md5($this->password);
         $totalMembers = count($listResponse);
         $targetCount = count($targetUsernames);
         logger('user_vo')->info("Searching for NC users in VO members", [
