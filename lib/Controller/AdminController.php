@@ -387,13 +387,28 @@ class AdminController extends Controller {
                 $user = \OC::$server->getUserManager()->get($uid);
                 $email = $user ? $user->getSystemEMailAddress() : '';
 
+                // Check if user has a custom photo (not generated/default)
+                $photoStatus = '-';
+                if ($user) {
+                    $avatarManager = \OC::$server->getAvatarManager();
+                    try {
+                        $avatar = $avatarManager->getAvatar($uid);
+                        // Check if avatar is user-uploaded (not generated)
+                        if ($avatar->isCustomAvatar()) {
+                            $photoStatus = 'Available';
+                        }
+                    } catch (\Exception $e) {
+                        // Avatar check failed, keep default status
+                    }
+                }
+
                 $results[] = [
                     'uid' => $uid,
                     'vo_username' => $voUsername ?: '-',
                     'vo_user_id' => $voUserId ?: '-',
                     'display_name' => $userRow['displayname'] ?: '-',
                     'email' => $email ?: '-',
-                    'photo_status' => '-',
+                    'photo_status' => $photoStatus,
                     'last_synced' => $userRow['last_synced'] ?: '-',
                     'status' => 'info',
                     'message' => $voUserId ? 'Has VO ID' : 'No VO user ID'
@@ -508,9 +523,9 @@ class AdminController extends Controller {
                 // Get photo status
                 $photoStatus = '';
                 if (!empty($voUserData['foto']) && $voUserData['foto'] !== 'anonym.gif') {
-                    $photoStatus = 'Available';
+                    $photoStatus = 'Available in VO';
                 } else {
-                    $photoStatus = 'None';
+                    $photoStatus = '-';
                 }
 
                 // Check if user is deleted
@@ -706,7 +721,7 @@ class AdminController extends Controller {
                     $email = $user ? $user->getSystemEMailAddress() : '';
 
                     // Check photo sync status from voUserData
-                    $photoStatus = 'Not configured';
+                    $photoStatus = '-';
                     $syncPhoto = $this->config->getAppValue('user_vo', 'sync_photo', 'false') === 'true';
                     $hasPhoto = !empty($voUserData['foto']) && $voUserData['foto'] !== 'anonym.gif';
 
@@ -714,8 +729,6 @@ class AdminController extends Controller {
                         $photoStatus = 'Synced';
                     } elseif ($hasPhoto) {
                         $photoStatus = 'Available (not synced)';
-                    } elseif ($syncPhoto) {
-                        $photoStatus = 'No photo in VO';
                     }
 
                     if ($isDeleted) {
