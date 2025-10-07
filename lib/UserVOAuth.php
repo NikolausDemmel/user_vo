@@ -190,7 +190,7 @@ class UserVOAuth extends Base {
      * @param string $voUserId VO user ID (from VerifyLogin result)
      * @return array|null User data or null on error. Returns array with '_error' key on specific errors.
      */
-    protected function fetchUserDataFromVO(string $voUserId): ?array {
+    public function fetchUserDataFromVO(string $voUserId): ?array {
         $token = 'A/' . $this->username . '/' . md5($this->password);
         $url = $this->apiUrl . "/?api=GetMember";
         $data = ['id' => $voUserId];
@@ -247,7 +247,7 @@ class UserVOAuth extends Base {
      *
      * @return array|null Array of members or null on failure
      */
-    protected function fetchAllMembers(): ?array {
+    public function fetchAllMembers(): ?array {
         $token = 'A/' . $this->username . '/' . md5($this->password);
         $listUrl = $this->apiUrl . "/?api=GetMembers";
         $listResponse = $this->makeRequest($listUrl, [], $token);
@@ -260,7 +260,7 @@ class UserVOAuth extends Base {
         return $listResponse;
     }
 
-    protected function fetchMembersMapForUsers(array $targetUsernames): array {
+    public function fetchMembersMapForUsers(array $targetUsernames): array {
         $listResponse = $this->fetchAllMembers();
 
         if ($listResponse === null) {
@@ -382,7 +382,7 @@ class UserVOAuth extends Base {
      * @param array $voUserData User data from fetchUserDataFromVO
      * @return bool Success
      */
-    protected function syncUserData(string $uid, array $voUserData): bool {
+    public function syncUserData(string $uid, array $voUserData): bool {
         try {
             // Username mismatch warning - VO username might have different case (case-insensitive comparison)
             if (strtolower($voUserData['username']) !== strtolower($uid)) {

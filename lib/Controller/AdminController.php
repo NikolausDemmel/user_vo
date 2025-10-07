@@ -441,11 +441,6 @@ class AdminController extends Controller {
                 $this->config
             );
 
-            // Use reflection to access protected method
-            $reflectionClass = new \ReflectionClass($auth);
-            $fetchUserDataMethod = $reflectionClass->getMethod('fetchUserDataFromVO');
-            $fetchUserDataMethod->setAccessible(true);
-
             foreach ($users as $userRow) {
                 $uid = $userRow['uid'];
 
@@ -472,7 +467,7 @@ class AdminController extends Controller {
                 }
 
                 // Fetch data from VO API
-                $voUserData = $fetchUserDataMethod->invoke($auth, $voUserId);
+                $voUserData = $auth->fetchUserDataFromVO($voUserId);
 
                 if ($voUserData === null) {
                     $results[] = [
@@ -588,10 +583,7 @@ class AdminController extends Controller {
                 $targetUsernames = array_map(fn($u) => strtolower($u['uid']), $usersNeedingIds);
 
                 // Fetch members map from VO API (optimized to stop early)
-                $reflection = new \ReflectionClass($auth);
-                $mapMethod = $reflection->getMethod('fetchMembersMapForUsers');
-                $mapMethod->setAccessible(true);
-                $membersMap = $mapMethod->invoke($auth, $targetUsernames);
+                $membersMap = $auth->fetchMembersMapForUsers($targetUsernames);
 
                 // Update database with vo_user_ids
                 $populated = 0;
@@ -651,11 +643,8 @@ class AdminController extends Controller {
                     continue;
                 }
 
-                // Fetch user data from VO using reflection to access protected method
-                $reflection = new \ReflectionClass($auth);
-                $fetchMethod = $reflection->getMethod('fetchUserDataFromVO');
-                $fetchMethod->setAccessible(true);
-                $voUserData = $fetchMethod->invoke($auth, $voUserId);
+                // Fetch user data from VO
+                $voUserData = $auth->fetchUserDataFromVO($voUserId);
 
                 if ($voUserData === null) {
                     $results[] = [
@@ -699,10 +688,8 @@ class AdminController extends Controller {
                 // Check if user is deleted in VO
                 $isDeleted = $voUserData['_deleted'] ?? false;
 
-                // Sync user data using reflection (even for deleted users to update metadata)
-                $syncMethod = $reflection->getMethod('syncUserData');
-                $syncMethod->setAccessible(true);
-                $success = $syncMethod->invoke($auth, $uid, $voUserData);
+                // Sync user data (even for deleted users to update metadata)
+                $success = $auth->syncUserData($uid, $voUserData);
 
                 if ($success || $isDeleted) {
                     // Get last_synced from database
@@ -1157,13 +1144,8 @@ class AdminController extends Controller {
                 $configuration['api_password']
             );
 
-            // Use reflection to access protected fetchAllMembers() method
-            $reflection = new \ReflectionClass($backend);
-            $fetchAllMembersMethod = $reflection->getMethod('fetchAllMembers');
-            $fetchAllMembersMethod->setAccessible(true);
-
             // Fetch all VO members
-            $allMembers = $fetchAllMembersMethod->invoke($backend);
+            $allMembers = $backend->fetchAllMembers();
 
             if (!$allMembers) {
                 return new JSONResponse([
@@ -1208,9 +1190,7 @@ class AdminController extends Controller {
                 }
 
                 // Fetch full member details to check userlogin and deleted status
-                $fetchUserDataMethod = $reflection->getMethod('fetchUserDataFromVO');
-                $fetchUserDataMethod->setAccessible(true);
-                $memberData = $fetchUserDataMethod->invoke($backend, $memberId);
+                $memberData = $backend->fetchUserDataFromVO($memberId);
 
                 if (!$memberData) {
                     continue; // Skip if can't fetch details
@@ -1287,13 +1267,8 @@ class AdminController extends Controller {
                 $configuration['api_password']
             );
 
-            // Use reflection to access protected fetchUserDataFromVO() method
-            $reflection = new \ReflectionClass($backend);
-            $fetchUserDataMethod = $reflection->getMethod('fetchUserDataFromVO');
-            $fetchUserDataMethod->setAccessible(true);
-
             // Fetch user data from VO
-            $memberData = $fetchUserDataMethod->invoke($backend, $voUserId);
+            $memberData = $backend->fetchUserDataFromVO($voUserId);
 
             if (!$memberData) {
                 return new JSONResponse([
@@ -1333,11 +1308,8 @@ class AdminController extends Controller {
             // Create account using existing storeUser logic
             $backend->storeUser($ncUsername);
 
-            // Sync user data using reflection (already normalized from fetchUserDataFromVO)
-            $reflection = new \ReflectionClass($backend);
-            $syncMethod = $reflection->getMethod('syncUserData');
-            $syncMethod->setAccessible(true);
-            $syncMethod->invoke($backend, $ncUsername, $memberData);
+            // Sync user data (already normalized from fetchUserDataFromVO)
+            $backend->syncUserData($ncUsername, $memberData);
 
             $this->logger->info("Pre-provisioned NC account for VO user", [
                 'app' => 'user_vo',
