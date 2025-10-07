@@ -1248,9 +1248,12 @@ class AdminController extends Controller {
      *
      * @return JSONResponse
      */
-    public function createAccountFromVO() {
+    public function createAccountFromVO(string $voUserId = '') {
         try {
-            $voUserId = $this->request->getParam('vo_user_id', '');
+            // Allow parameter to be passed directly or from request
+            if (empty($voUserId)) {
+                $voUserId = $this->request->getParam('vo_user_id', '');
+            }
 
             if (empty($voUserId)) {
                 return new JSONResponse([
@@ -1360,13 +1363,8 @@ class AdminController extends Controller {
             ];
 
             foreach ($voUserIds as $voUserId) {
-                // Create a temporary request object with the vo_user_id parameter
-                $originalParams = $this->request->getParams();
-
-                // Manually set the parameter for this iteration
-                $_POST['vo_user_id'] = $voUserId;
-
-                $response = $this->createAccountFromVO();
+                // Call createAccountFromVO directly with the voUserId parameter
+                $response = $this->createAccountFromVO($voUserId);
                 $data = $response->getData();
 
                 if ($data['success']) {
@@ -1382,7 +1380,7 @@ class AdminController extends Controller {
                 } else {
                     $results['errors'][] = [
                         'vo_user_id' => $voUserId,
-                        'error' => $data['error']
+                        'error' => $data['error'] ?? 'Unknown error'
                     ];
                 }
             }
