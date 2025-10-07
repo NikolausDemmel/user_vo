@@ -521,7 +521,7 @@ class UserVOAuth extends Base {
 
             fclose($tmpFile);
 
-            logger('user_vo')->info("Successfully synced user photo", ['uid' => $uid]);
+            logger('user_vo')->debug("Successfully synced user photo", ['uid' => $uid]);
             return ['success' => true, 'message' => 'Synced'];
 
         } catch (\Exception $e) {
