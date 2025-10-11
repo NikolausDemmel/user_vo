@@ -377,8 +377,8 @@ AGPL-3.0 - See [LICENSE](LICENSE)
 
 ## Links
 
-- **GitHub:** https://github.com/NikolausDemmel/user_vo
-- **Issues:** https://github.com/NikolausDemmel/user_vo/issues
+- **GitHub:** https://github.com/bkhoesie/user_vo
+- **Issues:** https://github.com/bkhoesie/user_vo/issues
 - **Nextcloud App Store:** https://apps.nextcloud.com/apps/user_vo
 
 ## Credits

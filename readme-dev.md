@@ -28,4 +28,4 @@
 11. Create the signature:
    `openssl dgst -sha512 -sign ~/.nextcloud/certificates/user_vo.key build/artifacts/appstore/user_vo.tar.gz | openssl base64`
 12. Submit the release on https://apps.nextcloud.com/developer/apps/releases/new, using the signature and the GitHub release asset link:
-    `https://github.com/NikolausDemmel/user_vo/releases/download/v0.1.2/user_vo.tar.gz`
+    `https://github.com/bkhoesie/user_vo/releases/download/v0.1.2/user_vo.tar.gz`

@@ -6,7 +6,7 @@
     <summary>User authentication plugin for VereinOnline</summary>
 	<description><![CDATA[Use VereinOnline User Authentication to give VereinOnline users access to your Nextcloud instance.
 
-The [documentation](https://github.com/NikolausDemmel/user_vo) describes how this plugin is configured.
+The [documentation](https://github.com/bkhoesie/user_vo) describes how this plugin is configured.
     ]]></description>
     <licence>AGPL</licence>
     <author>Nikolaus Demmel</author>
@@ -17,13 +17,13 @@ The [documentation](https://github.com/NikolausDemmel/user_vo) describes how thi
 		<authentication/>
 	</types>
 	<documentation>
-		<admin>https://github.com/NikolausDemmel/user_vo</admin>
+		<admin>https://github.com/bkhoesie/user_vo</admin>
 	</documentation>
 	<category>tools</category>
 	<category>integration</category>
-	<website>https://github.com/NikolausDemmel/user_vo</website>
-	<bugs>https://github.com/NikolausDemmel/user_vo/issues</bugs>
-	<repository type="git">https://github.com/NikolausDemmel/user_vo.git</repository>
+	<website>https://github.com/bkhoesie/user_vo</website>
+	<bugs>https://github.com/bkhoesie/user_vo/issues</bugs>
+	<repository type="git">https://github.com/bkhoesie/user_vo.git</repository>
 	<dependencies>
 		<nextcloud min-version="24" max-version="31" />
 	</dependencies>
