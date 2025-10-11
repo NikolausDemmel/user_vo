@@ -8,10 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Automatic user data synchronization (display name, email, profile photo) from VereinOnline on login
-- Optional nightly background sync job (configurable via admin UI)
-- Admin interface for manual sync and preview of local vs VO user data
-- Auto-population of VO user IDs on first sync after upgrade (no re-login needed)
+- **User Data Synchronization**: Display name, email, and profile photos are now automatically synchronized from VereinOnline
+  - Syncs on every login
+  - Configurable: enable/disable email sync and photo sync separately
+  - VereinOnline is the source of truth - manual changes in Nextcloud will be overwritten
+- **Nightly Automatic Sync**: Optional background job to keep user data up-to-date without requiring login
+  - Disabled by default, enable via admin interface
+  - Runs every 24 hours when enabled
+  - Shows execution status and summary
+- **Pre-provision User Accounts**: Create accounts for users before their first login
+  - Search for users by name in VereinOnline
+  - Create accounts individually or in bulk
+  - Accounts are fully configured and ready to use immediately
+- **Manual Sync UI**: Admin interface for managing user synchronization
+  - View current user data in Nextcloud
+  - Preview data from VereinOnline without syncing
+  - Trigger immediate sync for all users
+  - See detailed sync results
+
+### Changed
+- **Upgrade Note**: When upgrading from v0.2.2, user IDs are automatically migrated when you first run a manual sync or enable nightly sync. Users don't need to log in again - the migration happens in the background.
+- Improved dark mode appearance in admin interface
 
 ## [0.2.2] - 2025-10-04
 
