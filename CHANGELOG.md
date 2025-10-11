@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-10-11
+
 ### Added
 - **User Data Synchronization**: Display name, email, and profile photos are now automatically synchronized from VereinOnline
   - Syncs on every login
@@ -66,7 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the UserVO plugin with username and password support.
 
-[unreleased]: https://github.com/bkhoesie/user_vo/compare/v0.2.2...HEAD
+[unreleased]: https://github.com/bkhoesie/user_vo/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/bkhoesie/user_vo/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/bkhoesie/user_vo/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/bkhoesie/user_vo/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/bkhoesie/user_vo/compare/v0.1.2...v0.2.0
